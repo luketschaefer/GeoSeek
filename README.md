@@ -1,61 +1,83 @@
-# GeoSeek
+# GeoSeek - Living Specification
+**Team Name:** LSL Industries Inc.
 
-GeoSeek is a scavenger hunt game that utilizes the camera and AR to challenge the player to explore the world around them. It will have at least two modes, Hunt mode and Collector mode. Hunt mode is a round based gamemode in which you can choose an environment for the hunt and it generates items to look for in a time limit. Different items are worth different amounts of points. There is also a daily quest for more XP. Collector mode adds to your profile where you can find objects and keep them as trading cards which you could potentially swap with other people. Cards are also worth XP which goes into your profile the first time you acquire them. Having a social network would be very valuable to this game so that players can trade and compare profiles.
+**Team Members:** Luke Erdman, Sean Kaliel, Luke Schaefer
 
-**Status:** skeleton. Every screen exists and is reachable; the Hunt screen is a wiring proof (camera →
-ML Kit → target matcher → debug overlay). See [ROADMAP.md](ROADMAP.md) and [CLAUDE.md](CLAUDE.md).
+## 1. Target Project & Scope
+### Project Summary:
+GeoSeek is a scavenger hunt game that utilizes the camera and AR to challenge the player to explore the world around them. It will have at least two modes, Hunt mode and Collector mode. Hunt mode is a round based gamemode in which you can choose an environment for the hunt and it generates items to look for in a time limit. Different items are worth different amounts of points. There is also a daily quest for more XP. Collector mode adds to your profile where you can find objects and keep them as trading cards which you could potentially swap with other people. Cards are also worth XP which goes into your profile the first time you acquire them. Having a social network would be very valuable to this game so that players can trade and compare profiles. 
 
-## Requirements
+### Problem Statement & Objectives: 
+Exploration of common places is often lacklustre and boring without much incentive for people to pay attention to their surroundings. Traditional games and scavenger hunts can encourage exploration, but are often repetitive, manually organized, or limited to specific locations. This application aims to make exploring real world environments more engaging by making the user’s surroundings into an interactive game through the employment of modern technology such as computer vision and augmented reality.
+This application will task the user, based on the mode selected, to complete tasks such as fulfilling quests for XP, or collecting objects like trading cards. Objects will have different rarity levels and point values, encouraging players to search more carefully and take on more difficult challenges. Combined with augmented reality to make objects come to life once they are found, this application will make exploration of modern spaces more engaging for any user type.
 
-- **Android Studio 2026.1.4** or newer. AGP 9.4 needs a recent Studio; if Studio reports the AGP
-  version as unsupported, update Studio rather than downgrading AGP.
-- **JDK 17+** for Gradle. Studio's bundled JBR works; CI uses Temurin 21.
-- Android SDK Platform **37** (Studio/Gradle installs it on first sync if licenses are accepted).
-- A physical Android device with Android 8.0+ (API 26) for real detection. AR additionally needs an
-  [ARCore-supported device](https://developers.google.com/ar/devices); others get a 2D reveal.
+### Key Features & Functionality:
+**Must** <ol><li>Detect objects successfully using the camera</li><li>Include multiple objects to look for (at least two)</li><li>Working timer</li></ol>
 
-## Setup
+**Should** <ol><li>Include different gamemodes</li><li>Have a pool of at least 20 different objects to find</li><li>Implement a trading card system</li></ol>
 
-```bash
-git clone <repo-url> && cd GeoSeek
-./gradlew build          # first run downloads Gradle 9.8 and dependencies
-```
+**Could** <ol><li>Implement battles between trading cards</li><li>Enforce anti-cheating capabilities (detect images originating from sources such as screens)</li><li>Add multiplayer capabilities to the game</li><li>Implement advanced image recognition to allow finding rare versions of the same object possible (ex. Supercar vs a minivan)</li><li>Based on objects you have already found, give you suggestions of objects similar to those that you may be likely to find based on your previous experiences.</li><li>iOS support</li></ol>
 
-Or open the folder in Android Studio and let it sync. No API keys or `google-services.json` are needed.
+**Won't** <ol><li>Live AI generated quests</li><li>Global card trading</li></ol>
 
-## Run on a device
+### Tooling Strategy: 
+We plan on using the Claude Pro coding agent to assist development throughout the course of our project. We may also employ various testing tools, such as JUnit or Stryker Mutator, and XML formatters/verifiers to aid development. Hopefully using this we can achieve as many of our should’s and could’s as possible.
 
-1. On the phone: Settings → About phone → tap *Build number* 7× → Developer options → enable **USB debugging**.
-2. Connect via USB (or Wi-Fi pairing in Studio) and accept the debugging prompt.
-3. In Studio, pick the device and press **Run**, or run `./gradlew installDebug`.
-4. Start a hunt → pick an environment → allow camera. Point the camera at a **cup**: the overlay shows
-   live labels, the streak goes 1/3 → 3/3 and switches to **MATCHED**; **Reveal** opens the AR (or 2D) reveal.
+## 2. Targeted Platform & Initial Programming Language / Libraries use
+**Target Platform:** 
+We plan to develop GeoSeek on Android Studio, and deploy it as an independent mobile app which can be played on any Android device. Development in phase two could include iOS support. 
 
-The emulator works too (its virtual camera scene is enough to see labels flow), but ARCore isn't available there.
+**Programming Language(s):** 
+The app, which will be developed through Android Studio, will employ two of the primary supported languages present on the software, Java and XML.
 
-## Checks
+**Frameworks & Libraries:**
+CameraX
+ARCore SDK + Sceneview 
+Google ML Kit (Object Detection) 
+Google Cloud Vision API
 
-```bash
-./gradlew build                            # everything CI runs: lint, ktlint, detekt, unit tests
-./gradlew spotlessApply                    # auto-format
-./gradlew :app:connectedDebugAndroidTest   # instrumented Room tests (device/emulator)
-```
+## 3. Project Roadmap & Timeline.
+### Phase 1 (Proposal to Oct 25): 
+**September 25, 2026**
+Familiarize ourselves with image processing tools
 
-## Version compatibility
+**October 12, 2026**
+Implement working image detection with small object catalogue
 
-| Tool | Version |
-|---|---|
-| Gradle | 9.8.0 |
-| Android Gradle Plugin | 9.4.1 (built-in Kotlin) |
-| Kotlin / Compose compiler plugin | 2.4.20 |
-| KSP | 2.3.12 |
-| Hilt | 2.60.1 |
-| Compose BOM | 2026.09.00 |
-| CameraX | 1.6.2 |
-| ML Kit Image Labeling (bundled) | 17.0.9 |
-| ARCore / SceneView | 1.56.0 / 4.48.0 |
-| Room | 2.8.5 |
-| detekt | 2.0.0-alpha.6 (only line supporting Kotlin 2.4) |
-| ktlint (via Spotless 8.10.3) | 1.8.0 + Compose rules 0.6.7 |
+**October 20, 2026**
+Have working game loop (minimum 1 game mode)
 
-All versions live in `gradle/libs.versions.toml`. Bump the Kotlin/KSP/AGP/Hilt group together and run `./gradlew build`.
+**October 23, 2026**
+Increase object catalogue size (minimum 10)
+
+**October 25, 2026**
+Present prototype
+
+
+### Phase 2 (Post-Midterm to Term End): 
+**November 9, 2026**
+Implement second game mode, including trading card system
+
+**November 16, 2026**
+Finish object catalogue (minimum 20 objects, aim for much larger)
+
+**November 20, 2026**
+Polish added features, complete UI and graphical elements
+
+**November 28, 2026**
+Finish comprehensive testing
+
+**November 30, 2026**
+Finish application for presentation
+
+
+
+### Team Roles & Initial Task Allocation:
+We will all likely collaborate on all aspects of the project, but these are the areas that we have chosen to each lead development on:
+
+**Sean** - Computer vision / AR 
+
+**Luke Erdman** - Game / Backend logic
+
+**Luke Schaefer** - UI / Application user experience
+
