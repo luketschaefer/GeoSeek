@@ -5,9 +5,10 @@ naming:
   FunctionNaming:
     # Composables are PascalCase by convention.
     ignoreAnnotated: ['Composable']
-  TopLevelPropertyNaming:
-    # Compose design tokens (e.g. `val RarityLegendary = Color(...)`) are PascalCase constants.
-    constantPattern: '[A-Z][A-Za-z0-9]*'
+  MatchingDeclarationName:
+    # Feature navigation files (`XxxNavigation.kt`) pair route classes with a graph builder
+    # function by convention; naming the file after the route would hide that.
+    active: false
 
 complexity:
   LongParameterList:

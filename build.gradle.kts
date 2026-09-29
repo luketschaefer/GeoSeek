@@ -2,6 +2,7 @@ import dev.detekt.gradle.Detekt
 
 plugins {
     alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.lint) apply false
     // Declaring KGP here pins the Kotlin version that AGP's built-in Kotlin support uses.
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.compose) apply false
@@ -17,14 +18,13 @@ val ktlintVersion = libs.versions.ktlint.get()
 val composeRules = "io.nlopez.compose.rules:ktlint:${libs.versions.composeRules.get()}"
 
 spotless {
+    // Explicit source roots: a root-level "**/*.kt" glob walks build/ dirs while other tasks write them.
     kotlin {
-        target("**/*.kt")
-        targetExclude("**/build/**")
+        target("app/src/**/*.kt", "domain/src/**/*.kt")
         ktlint(ktlintVersion).customRuleSets(listOf(composeRules))
     }
     kotlinGradle {
-        target("**/*.gradle.kts")
-        targetExclude("**/build/**")
+        target("*.gradle.kts", "app/*.gradle.kts", "domain/*.gradle.kts")
         ktlint(ktlintVersion)
     }
 }

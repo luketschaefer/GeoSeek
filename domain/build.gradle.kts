@@ -5,6 +5,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    // Lets :app's lint (checkDependencies = true) analyze this module too.
+    alias(libs.plugins.android.lint)
 }
 
 java {
@@ -17,6 +19,11 @@ kotlin {
         jvmTarget.set(JvmTarget.JVM_17)
         allWarningsAsErrors.set(true)
     }
+}
+
+lint {
+    warningsAsErrors = true
+    abortOnError = true
 }
 
 dependencies {
