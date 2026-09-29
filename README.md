@@ -13,9 +13,12 @@ This application will task the user, based on the mode selected, to complete tas
 
 ### Key Features & Functionality:
 **Must** <ol><li>Detect objects successfully using the camera</li><li>Include multiple objects to look for (at least two)</li><li>Working timer</li></ol>
+
 **Should** <ol><li>Include different gamemodes</li><li>Have a pool of at least 20 different objects to find</li><li>Implement a trading card system</li></ol>
+
 **Could** <ol><li>Implement battles between trading cards</li><li>Enforce anti-cheating capabilities (detect images originating from sources such as screens)</li><li>Add multiplayer capabilities to the game</li><li>Implement advanced image recognition to allow finding rare versions of the same object possible (ex. Supercar vs a minivan)</li><li>Based on objects you have already found, give you suggestions of objects similar to those that you may be likely to find based on your previous experiences.</li><li>iOS support</li></ol>
-**Must** <ol><li>Live AI generated quests</li><li>Global card trading</li></ol>
+
+**Won't** <ol><li>Live AI generated quests</li><li>Global card trading</li></ol>
 
 ### Tooling Strategy: 
 We plan on using the Claude Pro coding agent to assist development throughout the course of our project. We may also employ various testing tools, such as JUnit or Stryker Mutator, and XML formatters/verifiers to aid development. Hopefully using this we can achieve as many of our should’s and could’s as possible.
@@ -34,7 +37,6 @@ Google ML Kit (Object Detection)
 Google Cloud Vision API
 
 ## 3. Project Roadmap & Timeline.
-Project Roadmap & Timeline:
 ### Phase 1 (Proposal to Oct 25): 
 **September 25, 2026**
 Familiarize ourselves with image processing tools
@@ -67,6 +69,7 @@ Finish comprehensive testing
 
 **November 30, 2026**
 Finish application for presentation
+
 
 
 ### Team Roles & Initial Task Allocation:
