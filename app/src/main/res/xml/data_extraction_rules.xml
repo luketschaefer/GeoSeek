@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+. Only player progress (the Room database) is backed up / transferred.
+     Shared prefs are deliberately left out: restoring the camera "requested" flag on a new
+     device would make the permission look permanently denied. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="." />
+    </device-transfer>
+</data-extraction-rules>

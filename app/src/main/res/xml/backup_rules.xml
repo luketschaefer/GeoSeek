@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and lower; keep in sync with data_extraction_rules.xml. Only the Room database
+     is backed up. Shared prefs are deliberately left out: restoring the camera "requested" flag
+     on a new device would make the permission look permanently denied. -->
+<full-backup-content>
+    <include domain="database" path="." />
+</full-backup-content>
