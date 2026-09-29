@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.geoseek.BuildConfig
 import com.geoseek.collector.navigation.CardDetailRoute
 import com.geoseek.domain.catalog.Catalog
 import com.geoseek.domain.catalog.Environment
@@ -28,6 +29,8 @@ data class CardDetailUiState(
     val environments: List<Environment>,
     val count: Int = 0,
     val firstFound: LocalDate? = null,
+    /** Debug builds can open the reveal for any card, so AR can be tested without a real find. */
+    val canReveal: Boolean = false,
 )
 
 @HiltViewModel
@@ -56,6 +59,7 @@ class CardDetailViewModel
                 .map { card ->
                     initial.copy(
                         count = card?.count ?: 0,
+                        canReveal = BuildConfig.DEBUG || (card?.count ?: 0) > 0,
                         firstFound = card?.firstAcquiredAt?.atZone(clock.zone)?.toLocalDate(),
                     )
                 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), initial)

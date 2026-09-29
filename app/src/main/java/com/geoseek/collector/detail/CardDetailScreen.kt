@@ -73,7 +73,7 @@ fun CardDetailContent(
                 state.firstFound?.let { stringResource(R.string.card_detail_first_found, it.toString()) }
                     ?: stringResource(R.string.card_detail_not_found),
             )
-            if (state.count > 0) {
+            if (state.canReveal) {
                 OutlinedButton(onClick = onRevealInAr) { Text(stringResource(R.string.card_detail_reveal)) }
             }
         }
