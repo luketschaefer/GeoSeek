@@ -3,6 +3,16 @@
 
 **Team Members:** Luke Erdman, Sean Kaliel, Luke Schaefer
 
+CURRENT STATE OF THE GAME
+1. The screens won't update when game state changes. HuntRound and XPManager use plain vars, which Compose doesn't watch. When the timer ticks or the score changes, the UI won't redraw. The standard fix is a ViewModel per screen that holds state in mutableStateOf or a StateFlow. It adds one small dependency (lifecycle-viewmodel-compose) and no DI framework. The timer should also run in the ViewModel as a coroutine, which keeps HuntRound as plain logic you can unit-test with JUnit (your README mentions JUnit).
+
+3. ObjectDetector.detect() has the wrong shape. It currently returns a result right away, but ML Kit labels images asynchronously and camera frames arrive continuously through CameraX. It should become a CameraX ImageAnalysis.Analyzer that reports matches through a callback, e.g. onObjectFound: (GameObject) -> Unit. Settle this early, since whoever leads the computer vision work will build on that signature.
+
+3. Progress isn't saved. Nothing is persisted yet, so XP and cards will reset every time the app restarts. Once XP and cards exist, SharedPreferences or DataStore will be enough, and you won't need a database.                                                                                                                                     
+  6. Navigation will outgrow the enum. The enum + when works for four tabs, but the system back button currently exits the app. Hunt will also turn into a flow (pick an environment → camera → results). If that becomes awkward, switching to navigation-compose is a contained change inside MainActivity.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
 ## 1. Target Project & Scope
 ### Project Summary:
 GeoSeek is a scavenger hunt game that utilizes the camera and AR to challenge the player to explore the world around them. It will have at least two modes, Hunt mode and Collector mode. Hunt mode is a round based gamemode in which you can choose an environment for the hunt and it generates items to look for in a time limit. Different items are worth different amounts of points. There is also a daily quest for more XP. Collector mode adds to your profile where you can find objects and keep them as trading cards which you could potentially swap with other people. Cards are also worth XP which goes into your profile the first time you acquire them. Having a social network would be very valuable to this game so that players can trade and compare profiles. 
