@@ -1,0 +1,453 @@
+{
+  "version": 1,
+  "objects": [
+    {
+      "id": "bench",
+      "name": "Bench",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "PARK",
+        "CAMPUS"
+      ],
+      "labels": [
+        "Bench"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "bicycle",
+      "name": "Bicycle",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "PARK",
+        "STREET",
+        "CAMPUS"
+      ],
+      "labels": [
+        "Bicycle"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "flower",
+      "name": "Flower",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "PARK"
+      ],
+      "labels": [
+        "Flower"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "dog",
+      "name": "Dog",
+      "rarity": "UNCOMMON",
+      "points": 25,
+      "xp": 15,
+      "environments": [
+        "PARK",
+        "STREET"
+      ],
+      "labels": [
+        "Dog"
+      ],
+      "minConfidence": 0.75
+    },
+    {
+      "id": "bird",
+      "name": "Bird",
+      "rarity": "UNCOMMON",
+      "points": 25,
+      "xp": 15,
+      "environments": [
+        "PARK"
+      ],
+      "labels": [
+        "Bird"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "swing",
+      "name": "Swing",
+      "rarity": "UNCOMMON",
+      "points": 25,
+      "xp": 15,
+      "environments": [
+        "PARK"
+      ],
+      "labels": [
+        "Swing"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "balloon",
+      "name": "Balloon",
+      "rarity": "RARE",
+      "points": 50,
+      "xp": 40,
+      "environments": [
+        "PARK"
+      ],
+      "labels": [
+        "Balloon"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "duck",
+      "name": "Duck",
+      "rarity": "RARE",
+      "points": 50,
+      "xp": 40,
+      "environments": [
+        "PARK"
+      ],
+      "labels": [
+        "Duck",
+        "Waterfowl"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "butterfly",
+      "name": "Butterfly",
+      "rarity": "EPIC",
+      "points": 100,
+      "xp": 100,
+      "environments": [
+        "PARK"
+      ],
+      "labels": [
+        "Butterfly"
+      ],
+      "minConfidence": 0.75
+    },
+    {
+      "id": "rainbow",
+      "name": "Rainbow",
+      "rarity": "LEGENDARY",
+      "points": 250,
+      "xp": 300,
+      "environments": [
+        "PARK",
+        "STREET"
+      ],
+      "labels": [
+        "Rainbow"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "cup",
+      "name": "Cup",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "KITCHEN",
+        "CAMPUS"
+      ],
+      "labels": [
+        "Cup"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "cutlery",
+      "name": "Cutlery",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "KITCHEN"
+      ],
+      "labels": [
+        "Cutlery"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "sink",
+      "name": "Sink",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "KITCHEN"
+      ],
+      "labels": [
+        "Sink"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "fruit",
+      "name": "Fruit",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "KITCHEN"
+      ],
+      "labels": [
+        "Fruit"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "cookware",
+      "name": "Pots & Pans",
+      "rarity": "UNCOMMON",
+      "points": 25,
+      "xp": 15,
+      "environments": [
+        "KITCHEN"
+      ],
+      "labels": [
+        "Cookware and bakeware"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "bread",
+      "name": "Bread",
+      "rarity": "UNCOMMON",
+      "points": 25,
+      "xp": 15,
+      "environments": [
+        "KITCHEN"
+      ],
+      "labels": [
+        "Bread"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "pizza",
+      "name": "Pizza",
+      "rarity": "RARE",
+      "points": 50,
+      "xp": 40,
+      "environments": [
+        "KITCHEN"
+      ],
+      "labels": [
+        "Pizza"
+      ],
+      "minConfidence": 0.75
+    },
+    {
+      "id": "cake",
+      "name": "Cake",
+      "rarity": "EPIC",
+      "points": 100,
+      "xp": 100,
+      "environments": [
+        "KITCHEN"
+      ],
+      "labels": [
+        "Cake"
+      ],
+      "minConfidence": 0.75
+    },
+    {
+      "id": "car",
+      "name": "Car",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "STREET"
+      ],
+      "labels": [
+        "Car"
+      ],
+      "minConfidence": 0.75
+    },
+    {
+      "id": "bus",
+      "name": "Bus",
+      "rarity": "UNCOMMON",
+      "points": 25,
+      "xp": 15,
+      "environments": [
+        "STREET"
+      ],
+      "labels": [
+        "Bus"
+      ],
+      "minConfidence": 0.75
+    },
+    {
+      "id": "motorcycle",
+      "name": "Motorcycle",
+      "rarity": "UNCOMMON",
+      "points": 25,
+      "xp": 15,
+      "environments": [
+        "STREET"
+      ],
+      "labels": [
+        "Motorcycle"
+      ],
+      "minConfidence": 0.75
+    },
+    {
+      "id": "umbrella",
+      "name": "Umbrella",
+      "rarity": "RARE",
+      "points": 50,
+      "xp": 40,
+      "environments": [
+        "STREET",
+        "PARK"
+      ],
+      "labels": [
+        "Umbrella"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "skateboard",
+      "name": "Skateboard",
+      "rarity": "RARE",
+      "points": 50,
+      "xp": 40,
+      "environments": [
+        "STREET",
+        "PARK"
+      ],
+      "labels": [
+        "Skateboard"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "sunglasses",
+      "name": "Sunglasses",
+      "rarity": "RARE",
+      "points": 50,
+      "xp": 40,
+      "environments": [
+        "STREET",
+        "PARK"
+      ],
+      "labels": [
+        "Sunglasses"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "helicopter",
+      "name": "Helicopter",
+      "rarity": "LEGENDARY",
+      "points": 250,
+      "xp": 300,
+      "environments": [
+        "STREET"
+      ],
+      "labels": [
+        "Helicopter"
+      ],
+      "minConfidence": 0.75
+    },
+    {
+      "id": "chair",
+      "name": "Chair",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "CAMPUS"
+      ],
+      "labels": [
+        "Chair"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "computer",
+      "name": "Computer",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "CAMPUS"
+      ],
+      "labels": [
+        "Computer"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "bag",
+      "name": "Bag",
+      "rarity": "COMMON",
+      "points": 10,
+      "xp": 5,
+      "environments": [
+        "CAMPUS",
+        "STREET"
+      ],
+      "labels": [
+        "Bag"
+      ],
+      "minConfidence": 0.65
+    },
+    {
+      "id": "board",
+      "name": "Whiteboard",
+      "rarity": "UNCOMMON",
+      "points": 25,
+      "xp": 15,
+      "environments": [
+        "CAMPUS"
+      ],
+      "labels": [
+        "Whiteboard",
+        "Blackboard"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "statue",
+      "name": "Statue",
+      "rarity": "EPIC",
+      "points": 100,
+      "xp": 100,
+      "environments": [
+        "CAMPUS",
+        "PARK",
+        "STREET"
+      ],
+      "labels": [
+        "Statue"
+      ],
+      "minConfidence": 0.7
+    },
+    {
+      "id": "mortarboard",
+      "name": "Graduation Cap",
+      "rarity": "LEGENDARY",
+      "points": 250,
+      "xp": 300,
+      "environments": [
+        "CAMPUS"
+      ],
+      "labels": [
+        "Mortarboard"
+      ],
+      "minConfidence": 0.75
+    }
+  ]
+}
