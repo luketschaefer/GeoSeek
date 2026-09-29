@@ -1,0 +1,4 @@
+<resources>
+    <!-- Only the window theme; all UI theming lives in core/designsystem (Compose). -->
+    <style name="Theme.GeoSeek" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
