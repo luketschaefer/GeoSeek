@@ -27,3 +27,6 @@ style:
   UnusedPrivateFunction:
     # @Preview functions are only referenced by tooling.
     ignoreAnnotated: ['Preview']
+  ReturnCount:
+    # Early-return guard clauses are the preferred style for reducers and validators.
+    excludeGuardClauses: true
