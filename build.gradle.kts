@@ -36,6 +36,7 @@ detekt {
         files(
             "app/src/main/java",
             "app/src/test/java",
+            "app/src/androidTest/java",
             "domain/src/main/kotlin",
             "domain/src/test/kotlin",
         ),
