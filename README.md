@@ -81,3 +81,18 @@ We will all likely collaborate on all aspects of the project, but these are the 
 
 **Luke Schaefer** - UI / Application user experience
 
+
+## 4. Project Layout
+Single-module Android app (Kotlin + Jetpack Compose). Build with `./gradlew assembleDebug`.
+
+```
+app/src/main/java/com/example/geoseek/
+├── MainActivity.kt        App entry point and simple screen switching
+├── screens/               One Compose screen per file: Home, Hunt, Collection, Profile
+├── engine/HuntRound.kt    A single hunt round: timer, targets, score
+├── managers/XPManager.kt  Player XP, level, and daily quest bonus
+├── models/                Plain data: GameObject + Rarity, Card, ObjectList (example objects)
+└── detection/             ObjectDetector (ML Kit Image Labeling goes here)
+```
+
+CameraX, ML Kit, and ARCore/SceneView are not added yet; see the TODO in `app/build.gradle.kts`.
