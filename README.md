@@ -1,5 +1,6 @@
 # GeoSeek - Living Specification
 **Team Name:** LSL Industries Inc.
+
 **Team Members:** Luke Erdman, Sean Kaliel, Luke Schaefer
 
 ## 1. Target Project & Scope
@@ -11,10 +12,10 @@ Exploration of common places is often lacklustre and boring without much incenti
 This application will task the user, based on the mode selected, to complete tasks such as fulfilling quests for XP, or collecting objects like trading cards. Objects will have different rarity levels and point values, encouraging players to search more carefully and take on more difficult challenges. Combined with augmented reality to make objects come to life once they are found, this application will make exploration of modern spaces more engaging for any user type.
 
 ### Key Features & Functionality:
-| **Must** | <ol><li>Detect objects successfully using the camera</li><li>Include multiple objects to look for (at least two)</li><li>Working timer</li></ol> |
-| **Should** | <ol><li>Include different gamemodes</li><li>Have a pool of at least 20 different objects to find</li><li>Implement a trading card system</li></ol> |
-| **Could** | <ol><li>Implement battles between trading cards</li><li>Enforce anti-cheating capabilities (detect images originating from sources such as screens)</li><li>Add multiplayer capabilities to the game</li><li>Implement advanced image recognition to allow finding rare versions of the same object possible (ex. Supercar vs a minivan)</li><li>Based on objects you have already found, give you suggestions of objects similar to those that you may be likely to find based on your previous experiences.</li><li>iOS support</li></ol> |
-| **Must** | <ol><li>Live AI generated quests</li><li>Global card trading</li></ol> |
+**Must** <ol><li>Detect objects successfully using the camera</li><li>Include multiple objects to look for (at least two)</li><li>Working timer</li></ol>
+**Should** <ol><li>Include different gamemodes</li><li>Have a pool of at least 20 different objects to find</li><li>Implement a trading card system</li></ol>
+**Could** <ol><li>Implement battles between trading cards</li><li>Enforce anti-cheating capabilities (detect images originating from sources such as screens)</li><li>Add multiplayer capabilities to the game</li><li>Implement advanced image recognition to allow finding rare versions of the same object possible (ex. Supercar vs a minivan)</li><li>Based on objects you have already found, give you suggestions of objects similar to those that you may be likely to find based on your previous experiences.</li><li>iOS support</li></ol>
+**Must** <ol><li>Live AI generated quests</li><li>Global card trading</li></ol>
 
 ### Tooling Strategy: 
 We plan on using the Claude Pro coding agent to assist development throughout the course of our project. We may also employ various testing tools, such as JUnit or Stryker Mutator, and XML formatters/verifiers to aid development. Hopefully using this we can achieve as many of our should’s and could’s as possible.
@@ -37,30 +38,43 @@ Project Roadmap & Timeline:
 ### Phase 1 (Proposal to Oct 25): 
 **September 25, 2026**
 Familiarize ourselves with image processing tools
+
 **October 12, 2026**
 Implement working image detection with small object catalogue
+
 **October 20, 2026**
 Have working game loop (minimum 1 game mode)
+
 **October 23, 2026**
 Increase object catalogue size (minimum 10)
+
 **October 25, 2026**
 Present prototype
+
 
 ### Phase 2 (Post-Midterm to Term End): 
 **November 9, 2026**
 Implement second game mode, including trading card system
+
 **November 16, 2026**
 Finish object catalogue (minimum 20 objects, aim for much larger)
+
 **November 20, 2026**
 Polish added features, complete UI and graphical elements
+
 **November 28, 2026**
 Finish comprehensive testing
+
 **November 30, 2026**
 Finish application for presentation
 
+
 ### Team Roles & Initial Task Allocation:
 We will all likely collaborate on all aspects of the project, but these are the areas that we have chosen to each lead development on:
+
 **Sean** - Computer vision / AR 
+
 **Luke Erdman** - Game / Backend logic
+
 **Luke Schaefer** - UI / Application user experience
 
