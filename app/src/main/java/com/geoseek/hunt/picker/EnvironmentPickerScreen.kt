@@ -21,6 +21,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.geoseek.R
 import com.geoseek.core.designsystem.GeoSeekTheme
+import com.geoseek.core.designsystem.labelRes
 import com.geoseek.core.ui.GeoScaffold
 import com.geoseek.domain.catalog.Environment
 

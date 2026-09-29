@@ -1,7 +1,6 @@
 package com.geoseek.hunt.picker
 
 import androidx.lifecycle.ViewModel
-import com.geoseek.R
 import com.geoseek.domain.catalog.Catalog
 import com.geoseek.domain.catalog.Environment
 import com.geoseek.quests.TodaysQuestProvider
@@ -40,12 +39,4 @@ class EnvironmentPickerViewModel
                 ),
             )
         val uiState: StateFlow<EnvironmentPickerUiState> = _uiState.asStateFlow()
-    }
-
-fun Environment.labelRes(): Int =
-    when (this) {
-        Environment.PARK -> R.string.env_park
-        Environment.KITCHEN -> R.string.env_kitchen
-        Environment.STREET -> R.string.env_street
-        Environment.CAMPUS -> R.string.env_campus
     }

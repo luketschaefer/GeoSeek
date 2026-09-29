@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.geoseek.R
 import com.geoseek.core.designsystem.GeoSeekTheme
+import com.geoseek.core.designsystem.labelRes
 import com.geoseek.core.permissions.CameraPermissionState
 import com.geoseek.core.permissions.PermissionStatus
 import com.geoseek.core.permissions.rememberCameraPermissionState
@@ -37,7 +38,6 @@ import com.geoseek.core.ui.GeoScaffold
 import com.geoseek.core.ui.MessageView
 import com.geoseek.detection.camera.DetectionCamera
 import com.geoseek.domain.catalog.Environment
-import com.geoseek.hunt.picker.labelRes
 import java.util.Locale
 
 @Composable
