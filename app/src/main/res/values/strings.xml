@@ -1,3 +1,117 @@
 <resources>
     <string name="app_name">GeoSeek</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="done">Done</string>
+    <string name="try_again">Try again</string>
+    <string name="open_settings">Open settings</string>
+    <string name="coming_soon">Coming soon</string>
+    <string name="level_n">Level %1$d</string>
+
+    <!-- Rarity -->
+    <string name="rarity_common">Common</string>
+    <string name="rarity_uncommon">Uncommon</string>
+    <string name="rarity_rare">Rare</string>
+    <string name="rarity_epic">Epic</string>
+    <string name="rarity_legendary">Legendary</string>
+
+    <!-- Environments -->
+    <string name="env_park">Park</string>
+    <string name="env_kitchen">Kitchen</string>
+    <string name="env_street">Street</string>
+    <string name="env_campus">Campus</string>
+
+    <!-- Card -->
+    <plurals name="card_points">
+        <item quantity="one">%1$d point</item>
+        <item quantity="other">%1$d points</item>
+    </plurals>
+    <string name="card_count">×%1$d</string>
+    <string name="card_locked_name">\?\?\?</string>
+
+    <!-- Home -->
+    <string name="home_greeting">Hi, %1$s</string>
+    <string name="home_start_hunt">Start a hunt</string>
+    <string name="home_daily_quest">Daily quest</string>
+    <string name="home_quest_body">Find a %1$s in the %2$s</string>
+    <string name="home_quest_bonus">Bonus: +%1$d XP</string>
+
+    <!-- Environment picker -->
+    <string name="picker_title">Choose an environment</string>
+    <plurals name="picker_object_count">
+        <item quantity="one">%1$d object to find</item>
+        <item quantity="other">%1$d objects to find</item>
+    </plurals>
+    <string name="picker_daily_quest_here">Today\'s daily quest is here</string>
+
+    <!-- Hunt -->
+    <string name="hunt_title">Hunt: %1$s</string>
+    <string name="camera_permission_title">Camera needed</string>
+    <string name="camera_permission_body">GeoSeek uses the camera to recognise the objects you find. Images are analysed on your device and never uploaded.</string>
+    <string name="camera_permission_allow">Allow camera</string>
+    <string name="camera_permission_rationale_title">Hunting needs the camera</string>
+    <string name="camera_permission_rationale_body">Without camera access GeoSeek can\'t see what you find. Frames are processed on your device only.</string>
+    <string name="camera_permission_denied_title">Camera access is off</string>
+    <string name="camera_permission_denied_body">Camera permission was denied. Turn it on in system settings to start hunting.</string>
+
+    <!-- Hunt debug overlay (developer-facing wiring proof) -->
+    <string name="debug_header">Detector: %1$s · frames: %2$d</string>
+    <string name="debug_target">Test target: %1$s [%2$s] ≥ %3$s</string>
+    <string name="debug_streak">Streak %1$d / %2$d</string>
+    <string name="debug_matched">MATCHED</string>
+    <string name="debug_reveal">Reveal</string>
+    <string name="debug_finish">Finish</string>
+
+    <!-- Results -->
+    <string name="results_title">Results</string>
+    <string name="results_none_title">No round recorded</string>
+    <string name="results_none_body">Timed rounds and scoring arrive with the full hunt mode.</string>
+    <string name="results_score">%1$d pts</string>
+    <string name="results_found">Found %1$d of %2$d</string>
+    <string name="results_play_again">Play again</string>
+    <string name="results_home">Home</string>
+    <string name="round_won">You found them all!</string>
+    <string name="round_time_up">Time\'s up</string>
+    <string name="round_abandoned">Round abandoned</string>
+    <string name="round_in_progress">Round in progress</string>
+
+    <!-- Reveal -->
+    <string name="reveal_title">Reveal</string>
+    <string name="reveal_found">You found: %1$s</string>
+    <string name="reveal_ar_hint">Point at a flat surface to place your %1$s card</string>
+    <string name="reveal_install_title">Enable AR?</string>
+    <string name="reveal_install_body">Google Play Services for AR lets your card appear in the real world.</string>
+    <string name="reveal_install_action">Install AR support</string>
+    <string name="reveal_skip_ar">Show without AR</string>
+
+    <!-- Collection -->
+    <string name="collection_title">Collection</string>
+    <string name="collection_progress">Collected: %1$d / %2$d</string>
+    <string name="card_detail_xp">%1$d XP on first find</string>
+    <string name="card_detail_environments">Found in: %1$s</string>
+    <string name="card_detail_first_found">First found %1$s</string>
+    <string name="card_detail_not_found">Not found yet</string>
+    <string name="card_detail_reveal">View in AR</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_xp">Next level: %1$d / %2$d XP · Total: %3$d XP</string>
+    <string name="profile_recent_rounds">Recent rounds</string>
+    <string name="profile_no_rounds">No rounds played yet</string>
+
+    <!-- Trading -->
+    <string name="trading_title">Trading</string>
+    <string name="trading_signed_out_title">Sign in to trade</string>
+    <string name="trading_signed_out_body">Accounts and trading with friends are on the way.</string>
+    <plurals name="trading_offer_count">
+        <item quantity="one">%1$d trade offer</item>
+        <item quantity="other">%1$d trade offers</item>
+    </plurals>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_detector">Object detector</string>
+    <string name="settings_catalog">Catalog objects</string>
 </resources>
