@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,7 +39,7 @@ class MainActivity : ComponentActivity() {
 fun GeoSeekApp() {
     var current by remember { mutableStateOf(Screen.Home) }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         Column(Modifier.weight(1f)) {
             when (current) {
                 Screen.Home -> HomeScreen()

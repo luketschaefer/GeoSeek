@@ -37,8 +37,12 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
 
-    // TODO: Add when the features are built (not needed to compile yet):
-    //  - CameraX (androidx.camera:camera-camera2, camera-lifecycle, camera-view) for the hunt camera
-    //  - ML Kit Image Labeling (com.google.mlkit:image-labeling) for ObjectDetector
-    //  - ARCore / SceneView (com.google.ar:core, io.github.sceneview:arsceneview) for AR later
+    implementation(libs.core.ktx)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.camera.mlkit.vision)
+    // Bundles the model so recognition works immediately, including offline.
+    implementation(libs.mlkit.image.labeling)
 }
