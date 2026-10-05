@@ -43,6 +43,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.geoseek.detection.DetectionResult
 import com.example.geoseek.detection.ObjectDetector
 
+/**
+ * Displays the chair hunt, including camera permission requests and live recognition.
+ *
+ * Rechecks permission when the screen resumes, offers app settings after permanent
+ * denial, and keeps a confirmed result visible until the user starts another scan.
+ * Scan state is local to this screen and is not saved to the player's collection.
+ */
 @Composable
 fun HuntScreen() {
     val context = LocalContext.current
@@ -150,6 +157,18 @@ fun HuntScreen() {
     }
 }
 
+/**
+ * Shows a rear-camera preview and analyzes frames while bound to the current lifecycle.
+ *
+ * Analysis stops after recognition or a detector error. Leaving the composition releases
+ * the controller and detector and prevents pending callbacks from updating the screen.
+ * Camera permission must already be granted; it is checked again before binding.
+ *
+ * @param scanId Changing this value creates a fresh camera controller and scan session.
+ * @param modifier Layout and sizing for the camera preview.
+ * @param onResult Receives detection progress and the final result on the main executor.
+ * @param onError Receives a user-facing camera startup error on the main executor.
+ */
 @Composable
 private fun ChairCameraPreview(
     scanId: Int,

@@ -25,7 +25,18 @@ class ObjectDetector : AutoCloseable {
     private var matchingFrames = 0
     private var previousMatchTime = 0L
 
-    // MlKitAnalyzer owns frame rotation and closes every ImageProxy after ML finishes.
+    /**
+     * Creates a camera analyzer that labels frames locally and confirms the chair target.
+     *
+     * A match requires three consecutive frames with at least 75% chair confidence and
+     * no gap longer than 1.5 seconds between matches. Nonmatching frames or errors reset
+     * the streak. MlKitAnalyzer handles rotation and closes each frame after processing.
+     *
+     * @param executor Serial executor for result callbacks; use the main executor when
+     * updating Compose state.
+     * @param onResult Receives recognition progress, the confirmed target, or an error.
+     * @return Analyzer to attach to the camera controller for this detector's scan session.
+     */
     fun createAnalyzer(executor: Executor, onResult: (DetectionResult) -> Unit): MlKitAnalyzer =
         MlKitAnalyzer(
             listOf(labeler),
@@ -60,6 +71,11 @@ class ObjectDetector : AutoCloseable {
             }
         }
 
+    /**
+     * Releases the ML Kit labeler when the scan session ends.
+     *
+     * Detach the camera analyzer and ignore pending callbacks before calling this method.
+     */
     override fun close() {
         labeler.close()
     }
