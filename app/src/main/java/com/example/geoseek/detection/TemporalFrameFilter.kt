@@ -1,5 +1,12 @@
 package com.example.geoseek.detection
 
+/**
+ * Result evaluation from multi-frame temporal streak processing.
+ *
+ * @property isConfirmed True when consecutive frame streak reaches or exceeds the required threshold.
+ * @property streakCount Current number of consecutive matching frames in the active window.
+ * @property averageConfidence Average confidence calculated over the matching streak window.
+ */
 data class FilterResult(
     val isConfirmed: Boolean,
     val streakCount: Int,
@@ -7,8 +14,13 @@ data class FilterResult(
 )
 
 /**
- * Tracks multi-frame temporal stability for object recognition to eliminate flickering
- * and false positives.
+ * Provides temporal frame filtering and streak tracking over real-time camera streams.
+ *
+ * Prevents UI flickering and false positive detections in CameraX (`androidx.camera.core.ImageAnalysis`)
+ * by enforcing a required number of consecutive matching frames within a maximum allowed time gap.
+ *
+ * @param requiredStreak Consecutive matching frame count needed to confirm recognition (default 3).
+ * @param maxGapMillis Maximum time gap in milliseconds allowed between matching frames (default 1500 ms).
  */
 class TemporalFrameFilter(
     private val requiredStreak: Int = 3,
@@ -19,11 +31,12 @@ class TemporalFrameFilter(
     private var confidenceSum = 0f
 
     /**
-     * Evaluates a frame match against temporal history.
+     * Evaluates a single frame match against temporal streak history.
      *
      * @param isMatch True if the frame contains the target object with acceptable confidence.
      * @param confidence Confidence score for the match in the current frame.
-     * @param currentTimeMillis Current timestamp in milliseconds.
+     * @param currentTimeMillis Current timestamp in milliseconds (typically from [android.os.SystemClock.elapsedRealtime]).
+     * @return [FilterResult] indicating streak progress and whether detection is confirmed.
      */
     fun processFrame(
         isMatch: Boolean,
@@ -37,7 +50,6 @@ class TemporalFrameFilter(
 
         val gap = currentTimeMillis - lastMatchTime
         if ((lastMatchTime > 0L) && (gap > maxGapMillis)) {
-            // Gap was too long, reset streak and start fresh at 1
             currentStreak = 1
             confidenceSum = confidence
         } else {
@@ -57,7 +69,9 @@ class TemporalFrameFilter(
     }
 
     /**
-     * Resets the temporal tracker state.
+     * Resets the temporal tracker state to zero.
+     *
+     * Call when a frame analysis error occurs or when starting a new scan session.
      */
     fun reset() {
         currentStreak = 0

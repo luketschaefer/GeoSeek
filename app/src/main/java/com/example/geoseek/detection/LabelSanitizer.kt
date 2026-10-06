@@ -1,7 +1,11 @@
 package com.example.geoseek.detection
 
 /**
- * Sanitizes ML Kit frame labels by suppressing abstract and non-object generic tags.
+ * Filters out abstract, generic, or non-object vision labels produced by ML Kit.
+ *
+ * ML Kit's base Image Labeling model output (`com.google.mlkit.vision.label`) includes structural tags
+ * (such as *"Product"*, *"Material"*, *"Rectangle"*, *"Line"*, *"Font"*). This component sanitizes frame labels
+ * so that live UI feedback (`"Camera sees: ..."`) only displays clean, real-world object descriptors.
  */
 class LabelSanitizer {
     private val suppressedLabels = setOf(
@@ -12,7 +16,10 @@ class LabelSanitizer {
     )
 
     /**
-     * Checks if a label string is a meaningful object label rather than a generic tag.
+     * Determines whether a vision label string represents a meaningful object.
+     *
+     * @param labelText Raw label text string.
+     * @return True if the label is a valid object descriptor and not in the suppression list.
      */
     fun isMeaningfulLabel(labelText: String): Boolean {
         val normalized = labelText.trim().lowercase()
@@ -20,8 +27,10 @@ class LabelSanitizer {
     }
 
     /**
-     * Extracts the best user-facing label string from a list of raw frame labels.
-     * Prefers higher-confidence meaningful object labels.
+     * Extracts the highest-confidence meaningful object label from a list of raw frame labels.
+     *
+     * @param labels List of [RawLabel]s produced by the vision analyzer.
+     * @return Best user-facing label string, or null if no meaningful object label is present.
      */
     fun extractVisibleLabel(labels: List<RawLabel>): String? {
         return labels

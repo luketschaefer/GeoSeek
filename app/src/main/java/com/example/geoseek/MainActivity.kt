@@ -48,7 +48,6 @@ fun GeoSeekApp() {
                 Screen.Profile -> ProfileScreen()
             }
         }
-        // TODO: Replace with a proper bottom navigation bar
         Row {
             Screen.entries.forEach { screen ->
                 TextButton(onClick = { current = screen }) { Text(screen.name) }

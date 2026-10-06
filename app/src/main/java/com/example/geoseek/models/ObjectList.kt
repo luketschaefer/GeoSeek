@@ -1,6 +1,13 @@
 // Catalog of findable real-world objects grouped by rarity and point value.
 package com.example.geoseek.models
 
+/**
+ * Global catalog list of findable [GameObject] targets in GeoSeek.
+ *
+ * Integrates with:
+ * - **Vision Analysis ([com.example.geoseek.detection.ObjectLabelMatcher])**: Provides targets and alias lookup pools.
+ * - **UI ([com.example.geoseek.screens.HuntScreen])**: Populates target selection chips.
+ */
 val OBJECT_LIST = listOf(
     // Furniture & Living Space
     GameObject("Chair", Rarity.COMMON, 10),

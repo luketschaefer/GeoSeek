@@ -51,8 +51,13 @@ import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.OBJECT_LIST
 
 /**
- * Displays real-time object hunting with target selection, permission handling,
- * live camera preview, and modular ML Kit detection.
+ * Main Composable screen for real-time object hunting.
+ *
+ * Integrates with:
+ * - **Android Activity & Permissions (`androidx.activity`)**: Handles runtime `Manifest.permission.CAMERA` requests and rationale dialogs.
+ * - **CameraX View (`androidx.camera.view.PreviewView`)**: Renders hardware-accelerated camera preview.
+ * - **Compose Lifecycle (`androidx.lifecycle.compose.LocalLifecycleOwner`)**: Binds camera analyzer lifecycles to screen resume/pause events.
+ * - **Object Detector ([com.example.geoseek.detection.ObjectDetector])**: Configures ML Kit vision analysis for selected targets.
  */
 @Composable
 fun HuntScreen() {
@@ -100,12 +105,13 @@ fun HuntScreen() {
         TargetSelectionRow(
             targets = OBJECT_LIST,
             selectedTarget = selectedTarget,
-        ) { newTarget ->
-            selectedTarget = newTarget
-            detection = DetectionResult()
-            cameraError = null
-            scanId++
-        }
+            onTargetSelected = { newTarget ->
+                selectedTarget = newTarget
+                detection = DetectionResult()
+                cameraError = null
+                scanId++
+            },
+        )
 
         val targetName = selectedTarget?.name ?: "Any Object"
         Text(
@@ -195,6 +201,15 @@ fun HuntScreen() {
     }
 }
 
+/**
+ * Horizontal chip selector allowing players to select target objects from [OBJECT_LIST].
+ *
+ * Integrates with **Compose Material3 (`androidx.compose.material3.FilterChip`)**.
+ *
+ * @param targets Catalog list of findable [GameObject]s.
+ * @param selectedTarget Currently selected target, or null for "Any Object".
+ * @param onTargetSelected Callback triggered when a chip selection changes.
+ */
 @Composable
 private fun TargetSelectionRow(
     targets: List<GameObject>,
@@ -224,7 +239,18 @@ private fun TargetSelectionRow(
 }
 
 /**
- * Shows a rear-camera preview and analyzes frames with [ObjectDetector].
+ * Camera preview host component bridging CameraX controller with Jetpack Compose views.
+ *
+ * Integrates with:
+ * - **CameraX Lifecycle Controller (`androidx.camera.view.LifecycleCameraController`)**: Manages camera hardware lifecycle.
+ * - **AndroidView Interop (`androidx.compose.ui.viewinterop.AndroidView`)**: Embeds native [PreviewView] inside Compose UI.
+ * - **Object Detector ([com.example.geoseek.detection.ObjectDetector])**: Connects [androidx.camera.mlkit.vision.MlKitAnalyzer] frame callbacks to screen state.
+ *
+ * @param target Target [GameObject] configured for vision analysis.
+ * @param scanId Key value used to re-instantiate camera controller on retry.
+ * @param modifier Layout modifier.
+ * @param onResult Callback for live frame detection result updates.
+ * @param onError Callback for camera startup or permission errors.
  */
 @Composable
 private fun ObjectCameraPreview(
@@ -268,7 +294,7 @@ private fun ObjectCameraPreview(
         val analyzer = detector.createAnalyzer(executor) { result ->
             if (!disposed && !finished) {
                 currentOnResult(result)
-                if (result.recognizedObject != null || result.error != null) {
+                if ((result.recognizedObject != null) || (result.error != null)) {
                     finished = true
                     controller.clearImageAnalysisAnalyzer()
                 }

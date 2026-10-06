@@ -9,6 +9,14 @@ import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import java.util.concurrent.Executor
 
+/**
+ * Encapsulates live camera frame recognition detection results.
+ *
+ * @property recognizedObject Confirmed target [GameObject] once multi-frame streak rules pass.
+ * @property confidence Smoothed confidence value (0.0f to 1.0f) for the detected match.
+ * @property visibleLabel Highest-confidence non-generic label text suitable for user display.
+ * @property error User-facing error message if vision frame analysis fails.
+ */
 data class DetectionResult(
     val recognizedObject: GameObject? = null,
     val confidence: Float = 0f,
@@ -17,13 +25,18 @@ data class DetectionResult(
 )
 
 /**
- * Orchestrates object recognition using modular label matching, label sanitization,
- * and multi-frame temporal confirmation.
+ * Orchestrates real-time object recognition by integrating CameraX analysis with Google ML Kit.
  *
- * @param target Specific [GameObject] to hunt for, or null to match any object in [targetPool].
+ * Integrates directly with:
+ * - **CameraX (`androidx.camera.core.ImageAnalysis`)**: Consumes live camera frames.
+ * - **CameraX ML Kit Interop (`androidx.camera.mlkit.vision.MlKitAnalyzer`)**: Coordinates rotation and automatic frame release.
+ * - **Google ML Kit Image Labeling (`com.google.mlkit.vision.label.ImageLabeler`)**: Runs local, on-device image labeling models.
+ * - **Modular Helpers**: Delegates filtering to [ObjectLabelMatcher], [LabelSanitizer], and [TemporalFrameFilter].
+ *
+ * @param target Specific [GameObject] to hunt for, or null to match any candidate in [targetPool].
  * @param targetPool Pool of valid findable objects when [target] is null.
- * @param confidenceThreshold Minimum label confidence (0.0 to 1.0) required for a match.
- * @param requiredStreak Number of consecutive matching frames needed to confirm a target.
+ * @param confidenceThreshold Minimum confidence required for a label match (default 0.60f).
+ * @param requiredStreak Number of consecutive matching frames required to confirm recognition.
  */
 class ObjectDetector(
     val target: GameObject? = OBJECT_LIST.firstOrNull { (name, _, _) -> name == "Chair" },
@@ -40,10 +53,11 @@ class ObjectDetector(
     private val temporalFilter = TemporalFrameFilter(requiredStreak = requiredStreak)
 
     /**
-     * Creates a camera analyzer that processes camera frames and reports detection progress.
+     * Builds an [MlKitAnalyzer] bridge connecting CameraX frame pipelines to ML Kit models.
      *
-     * @param executor Serial executor for result callbacks (e.g. main executor).
-     * @param onResult Callback for live detection updates and confirmed targets.
+     * @param executor Serial callback [Executor] (typically [ContextCompat.getMainExecutor]) for thread-safe UI updates.
+     * @param onResult Callback function invoked per frame with an updated [DetectionResult].
+     * @return An [MlKitAnalyzer] instance ready to bind to CameraX [LifecycleCameraController].
      */
     fun createAnalyzer(
         executor: Executor,
@@ -71,25 +85,30 @@ class ObjectDetector(
         }
 
         val visibleLabel = sanitizer.extractVisibleLabel(rawLabels)
-            ?: rawLabels.maxByOrNull { it.confidence }?.text
+            ?: rawLabels.maxByOrNull { (_, confidence) -> confidence }?.text
 
-        val filterResult = temporalFilter.processFrame(
+        val (isConfirmed, _, averageConfidence) = temporalFilter.processFrame(
             isMatch = match != null,
             confidence = match?.confidence ?: 0f,
             currentTimeMillis = SystemClock.elapsedRealtime(),
         )
 
-        val confirmedObject = match?.gameObject?.takeIf { filterResult.isConfirmed }
+        val confirmedObject = match?.gameObject?.takeIf { isConfirmed }
 
         onResult(
             DetectionResult(
                 recognizedObject = confirmedObject,
-                confidence = if (match != null) filterResult.averageConfidence else 0f,
+                confidence = if (match != null) averageConfidence else 0f,
                 visibleLabel = visibleLabel,
             ),
         )
     }
 
+    /**
+     * Releases underlying ML Kit [ImageLabeler] native resources.
+     *
+     * Call when detaching from camera lifecycle to prevent resource leaks.
+     */
     override fun close() {
         labeler.close()
     }
