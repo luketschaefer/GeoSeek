@@ -46,6 +46,9 @@ ARCore SDK + Sceneview
 Google ML Kit (Object Detection) 
 Google Cloud Vision API
 
+**Testing Framework**
+JUnit
+
 ## 3. Project Roadmap & Timeline.
 ### Phase 1 (Proposal to Oct 25): 
 **September 25, 2026**
