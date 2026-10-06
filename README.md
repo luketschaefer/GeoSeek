@@ -46,7 +46,7 @@ ARCore SDK + Sceneview
 Google ML Kit (Object Detection) 
 Google Cloud Vision API
 
-**Testing Framework**
+**Testing Framework:**
 JUnit
 
 ## 3. Project Roadmap & Timeline.
