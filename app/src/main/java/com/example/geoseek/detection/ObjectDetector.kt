@@ -9,6 +9,14 @@ import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import java.util.concurrent.Executor
 
+/**
+ * Encapsulates live camera frame recognition detection results.
+ *
+ * @property recognizedObject Confirmed target [GameObject] once multi-frame streak rules pass.
+ * @property confidence Smoothed confidence value (0.0f to 1.0f) for the detected match.
+ * @property visibleLabel Highest-confidence non-generic label text suitable for user display.
+ * @property error User-facing error message if vision frame analysis fails.
+ */
 data class DetectionResult(
     val recognizedObject: GameObject? = null,
     val confidence: Float = 0f,
@@ -16,65 +24,90 @@ data class DetectionResult(
     val error: String? = null,
 )
 
-/** Recognizes the chair target locally; generic labels such as Furniture never count. */
-class ObjectDetector : AutoCloseable {
-    private val target = OBJECT_LIST.first { it.name == "Chair" }
+/**
+ * Orchestrates real-time object recognition by integrating CameraX analysis with Google ML Kit.
+ *
+ * Integrates directly with:
+ * - **CameraX (`androidx.camera.core.ImageAnalysis`)**: Consumes live camera frames.
+ * - **CameraX ML Kit Interop (`androidx.camera.mlkit.vision.MlKitAnalyzer`)**: Coordinates rotation and automatic frame release.
+ * - **Google ML Kit Image Labeling (`com.google.mlkit.vision.label.ImageLabeler`)**: Runs local, on-device image labeling models.
+ * - **Modular Helpers**: Delegates filtering to [ObjectLabelMatcher], [LabelSanitizer], and [TemporalFrameFilter].
+ *
+ * @param target Specific [GameObject] to hunt for, or null to match any candidate in [targetPool].
+ * @param targetPool Pool of valid findable objects when [target] is null.
+ * @param confidenceThreshold Minimum confidence required for a label match (default 0.60f).
+ * @param requiredStreak Number of consecutive matching frames required to confirm recognition.
+ */
+class ObjectDetector(
+    val target: GameObject? = OBJECT_LIST.firstOrNull { (name, _, _) -> name == "Chair" },
+    val targetPool: List<GameObject> = OBJECT_LIST,
+    confidenceThreshold: Float = 0.60f,
+    requiredStreak: Int = 3,
+) : AutoCloseable {
+
     private val labeler = ImageLabeling.getClient(
-        ImageLabelerOptions.Builder().setConfidenceThreshold(0.5f).build()
+        ImageLabelerOptions.Builder().setConfidenceThreshold(0.40f).build(),
     )
-    private var matchingFrames = 0
-    private var previousMatchTime = 0L
+    private val matcher = ObjectLabelMatcher(defaultConfidenceThreshold = confidenceThreshold)
+    private val sanitizer = LabelSanitizer()
+    private val temporalFilter = TemporalFrameFilter(requiredStreak = requiredStreak)
 
     /**
-     * Creates a camera analyzer that labels frames locally and confirms the chair target.
+     * Builds an [MlKitAnalyzer] bridge connecting CameraX frame pipelines to ML Kit models.
      *
-     * A match requires three consecutive frames with at least 75% chair confidence and
-     * no gap longer than 1.5 seconds between matches. Nonmatching frames or errors reset
-     * the streak. MlKitAnalyzer handles rotation and closes each frame after processing.
-     *
-     * @param executor Serial executor for result callbacks; use the main executor when
-     * updating Compose state.
-     * @param onResult Receives recognition progress, the confirmed target, or an error.
-     * @return Analyzer to attach to the camera controller for this detector's scan session.
+     * @param executor Serial callback [Executor] (typically [ContextCompat.getMainExecutor]) for thread-safe UI updates.
+     * @param onResult Callback function invoked per frame with an updated [DetectionResult].
+     * @return An [MlKitAnalyzer] instance ready to bind to CameraX [LifecycleCameraController].
      */
-    fun createAnalyzer(executor: Executor, onResult: (DetectionResult) -> Unit): MlKitAnalyzer =
-        MlKitAnalyzer(
-            listOf(labeler),
-            ImageAnalysis.COORDINATE_SYSTEM_ORIGINAL,
-            executor,
-        ) { result ->
-            val failure = result.getThrowable(labeler)
-            if (failure != null) {
-                matchingFrames = 0
-                onResult(DetectionResult(error = "Recognition failed. Tap Retry to scan again."))
-            } else {
-                val labels = result.getValue(labeler).orEmpty()
-                val chair = labels.firstOrNull {
-                    it.text.equals(target.name, ignoreCase = true) && it.confidence >= 0.75f
-                }
-                val now = SystemClock.elapsedRealtime()
-                matchingFrames = if (chair == null) {
-                    0
-                } else if (now - previousMatchTime > 1_500L) {
-                    1
-                } else {
-                    matchingFrames + 1
-                }
-                if (chair != null) previousMatchTime = now
-                onResult(
-                    DetectionResult(
-                        recognizedObject = target.takeIf { matchingFrames >= 3 },
-                        confidence = chair?.confidence ?: 0f,
-                        visibleLabel = labels.maxByOrNull { it.confidence }?.text,
-                    )
-                )
-            }
+    fun createAnalyzer(
+        executor: Executor,
+        onResult: (DetectionResult) -> Unit,
+    ): MlKitAnalyzer = MlKitAnalyzer(
+        listOf(labeler),
+        ImageAnalysis.COORDINATE_SYSTEM_ORIGINAL,
+        executor,
+    ) { result ->
+        val failure = result.getThrowable(labeler)
+        if (failure != null) {
+            temporalFilter.reset()
+            onResult(DetectionResult(error = "Recognition failed. Tap Retry to scan again."))
+            return@MlKitAnalyzer
         }
 
+        val mlKitLabels = result.getValue(labeler).orEmpty()
+        val rawLabels = mlKitLabels.map { RawLabel(it.text, it.confidence) }
+
+        val activeTarget = target
+        val match: LabelMatch? = if (activeTarget != null) {
+            matcher.findTargetMatch(activeTarget, rawLabels)
+        } else {
+            matcher.findMatches(rawLabels).firstOrNull()
+        }
+
+        val visibleLabel = sanitizer.extractVisibleLabel(rawLabels)
+            ?: rawLabels.maxByOrNull { (_, confidence) -> confidence }?.text
+
+        val (isConfirmed, _, averageConfidence) = temporalFilter.processFrame(
+            isMatch = match != null,
+            confidence = match?.confidence ?: 0f,
+            currentTimeMillis = SystemClock.elapsedRealtime(),
+        )
+
+        val confirmedObject = match?.gameObject?.takeIf { isConfirmed }
+
+        onResult(
+            DetectionResult(
+                recognizedObject = confirmedObject,
+                confidence = if (match != null) averageConfidence else 0f,
+                visibleLabel = visibleLabel,
+            ),
+        )
+    }
+
     /**
-     * Releases the ML Kit labeler when the scan session ends.
+     * Releases underlying ML Kit [ImageLabeler] native resources.
      *
-     * Detach the camera analyzer and ignore pending callbacks before calling this method.
+     * Call when detaching from camera lifecycle to prevent resource leaks.
      */
     override fun close() {
         labeler.close()

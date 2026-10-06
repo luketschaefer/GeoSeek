@@ -13,13 +13,17 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -42,23 +47,28 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.geoseek.detection.DetectionResult
 import com.example.geoseek.detection.ObjectDetector
+import com.example.geoseek.models.GameObject
+import com.example.geoseek.models.OBJECT_LIST
 
 /**
- * Displays the chair hunt, including camera permission requests and live recognition.
+ * Main Composable screen for real-time object hunting.
  *
- * Rechecks permission when the screen resumes, offers app settings after permanent
- * denial, and keeps a confirmed result visible until the user starts another scan.
- * Scan state is local to this screen and is not saved to the player's collection.
+ * Integrates with:
+ * - **Android Activity & Permissions (`androidx.activity`)**: Handles runtime `Manifest.permission.CAMERA` requests and rationale dialogs.
+ * - **CameraX View (`androidx.camera.view.PreviewView`)**: Renders hardware-accelerated camera preview.
+ * - **Compose Lifecycle (`androidx.lifecycle.compose.LocalLifecycleOwner`)**: Binds camera analyzer lifecycles to screen resume/pause events.
+ * - **Object Detector ([com.example.geoseek.detection.ObjectDetector])**: Configures ML Kit vision analysis for selected targets.
  */
 @Composable
 fun HuntScreen() {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    // This triggers a fresh OS permission check after a dialog or a return from Settings.
+
     var permissionRevision by remember { mutableIntStateOf(0) }
-    var permanentlyDenied by remember { mutableStateOf(false) }
-    var showRationale by remember { mutableStateOf(false) }
+    var permanentlyDenied by remember { mutableStateOf(value = false) }
+    var showRationale by remember { mutableStateOf(value = false) }
+    var selectedTarget by remember { mutableStateOf<GameObject?>(OBJECT_LIST.first()) }
     var scanId by remember { mutableIntStateOf(0) }
     var detection by remember { mutableStateOf(DetectionResult()) }
     var cameraError by remember { mutableStateOf<String?>(null) }
@@ -70,69 +80,99 @@ fun HuntScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+
     val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        permanentlyDenied = !granted && activity != null &&
+        permanentlyDenied = !granted && (activity != null) &&
             !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA)
         permissionRevision++
     }
+
     val hasPermission = permissionRevision.let {
         ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Find a chair", style = MaterialTheme.typography.headlineSmall)
-        Text("Point the rear camera at a well-lit chair and hold steady. Recognition runs on your phone.")
+        Text("Object Hunt", style = MaterialTheme.typography.headlineSmall)
+
+        TargetSelectionRow(
+            targets = OBJECT_LIST,
+            selectedTarget = selectedTarget,
+            onTargetSelected = { newTarget ->
+                selectedTarget = newTarget
+                detection = DetectionResult()
+                cameraError = null
+                scanId++
+            },
+        )
+
+        val targetName = selectedTarget?.name ?: "Any Object"
+        Text(
+            text = "Point camera at a well-lit $targetName and hold steady.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
 
         if (!hasPermission) {
-            Text("Camera access is needed to recognize your chair.")
-            Button(onClick = {
-                when {
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                        PackageManager.PERMISSION_GRANTED -> permissionRevision++
-                    permanentlyDenied -> context.startActivity(
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                            .setData(Uri.fromParts("package", context.packageName, null))
-                    )
-                    activity != null && ActivityCompat.shouldShowRequestPermissionRationale(
-                        activity, Manifest.permission.CAMERA
-                    ) -> showRationale = true
-                    else -> permissionLauncher.launch(Manifest.permission.CAMERA)
-                }
-            }) {
+            Text("Camera access is needed to recognize objects in real time.")
+            Button(
+                onClick = {
+                    when {
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                            PackageManager.PERMISSION_GRANTED -> permissionRevision++
+                        permanentlyDenied -> context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                .setData(Uri.fromParts("package", context.packageName, null)),
+                        )
+                        (activity != null) && ActivityCompat.shouldShowRequestPermissionRationale(
+                            activity, Manifest.permission.CAMERA,
+                        ) -> showRationale = true
+                        else -> permissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                },
+            ) {
                 Text(if (permanentlyDenied) "Open app settings" else "Enable camera")
             }
         } else {
-            ChairCameraPreview(
+            ObjectCameraPreview(
+                target = selectedTarget,
                 scanId = scanId,
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
                 onResult = { detection = it },
                 onError = { cameraError = it },
             )
+
             val recognized = detection.recognizedObject
             when {
                 cameraError != null -> Text(cameraError!!, color = MaterialTheme.colorScheme.error)
                 detection.error != null -> Text(detection.error!!, color = MaterialTheme.colorScheme.error)
                 recognized != null -> Text(
-                    "${recognized.name} recognized! ${(detection.confidence * 100).toInt()}% confidence",
-                    style = MaterialTheme.typography.titleLarge,
+                    "🎉 ${recognized.name} recognized! +${recognized.points} pts (${(detection.confidence * 100).toInt()}% confidence)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 else -> {
-                    Text("Scanning for a chair…")
+                    Text("Scanning for $targetName…")
                     detection.visibleLabel?.let { Text("Camera sees: $it") }
                 }
             }
-            if (recognized != null || cameraError != null || detection.error != null) {
-                Button(onClick = {
-                    detection = DetectionResult()
-                    cameraError = null
-                    scanId++
-                }) {
+
+            if ((recognized != null) || (cameraError != null) || (detection.error != null)) {
+                Button(
+                    onClick = {
+                        detection = DetectionResult()
+                        cameraError = null
+                        scanId++
+                    },
+                ) {
                     Text(if (recognized != null) "Scan again" else "Retry")
                 }
             }
@@ -143,34 +183,78 @@ fun HuntScreen() {
         AlertDialog(
             onDismissRequest = { showRationale = false },
             title = { Text("Allow camera access") },
-            text = { Text("GeoSeek uses the camera to recognize a chair. Frames are processed on this phone and are not saved or uploaded by GeoSeek.") },
+            text = { Text("GeoSeek uses the camera to recognize items locally on your phone. Frames are not saved or uploaded.") },
             confirmButton = {
-                TextButton(onClick = {
-                    showRationale = false
-                    permissionLauncher.launch(Manifest.permission.CAMERA)
-                }) { Text("Continue") }
+                TextButton(
+                    onClick = {
+                        showRationale = false
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                ) { Text("Continue") }
             },
             dismissButton = {
-                TextButton(onClick = { showRationale = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = { showRationale = false },
+                ) { Text("Cancel") }
             },
         )
     }
 }
 
 /**
- * Shows a rear-camera preview and analyzes frames while bound to the current lifecycle.
+ * Horizontal chip selector allowing players to select target objects from [OBJECT_LIST].
  *
- * Analysis stops after recognition or a detector error. Leaving the composition releases
- * the controller and detector and prevents pending callbacks from updating the screen.
- * Camera permission must already be granted; it is checked again before binding.
+ * Integrates with **Compose Material3 (`androidx.compose.material3.FilterChip`)**.
  *
- * @param scanId Changing this value creates a fresh camera controller and scan session.
- * @param modifier Layout and sizing for the camera preview.
- * @param onResult Receives detection progress and the final result on the main executor.
- * @param onError Receives a user-facing camera startup error on the main executor.
+ * @param targets Catalog list of findable [GameObject]s.
+ * @param selectedTarget Currently selected target, or null for "Any Object".
+ * @param onTargetSelected Callback triggered when a chip selection changes.
  */
 @Composable
-private fun ChairCameraPreview(
+private fun TargetSelectionRow(
+    targets: List<GameObject>,
+    selectedTarget: GameObject?,
+    onTargetSelected: (GameObject?) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilterChip(
+            selected = selectedTarget == null,
+            onClick = { onTargetSelected(null) },
+            label = { Text("Any Object") },
+        )
+        targets.forEach { target ->
+            FilterChip(
+                selected = selectedTarget == target,
+                onClick = { onTargetSelected(target) },
+                label = { Text("${target.name} (${target.points} pts)") },
+            )
+        }
+    }
+}
+
+/**
+ * Camera preview host component bridging CameraX controller with Jetpack Compose views.
+ *
+ * Integrates with:
+ * - **CameraX Lifecycle Controller (`androidx.camera.view.LifecycleCameraController`)**: Manages camera hardware lifecycle.
+ * - **AndroidView Interop (`androidx.compose.ui.viewinterop.AndroidView`)**: Embeds native [PreviewView] inside Compose UI.
+ * - **Object Detector ([com.example.geoseek.detection.ObjectDetector])**: Connects [androidx.camera.mlkit.vision.MlKitAnalyzer] frame callbacks to screen state.
+ *
+ * @param target Target [GameObject] configured for vision analysis.
+ * @param scanId Key value used to re-instantiate camera controller on retry.
+ * @param modifier Layout modifier.
+ * @param onResult Callback for live frame detection result updates.
+ * @param onError Callback for camera startup or permission errors.
+ */
+@Composable
+private fun ObjectCameraPreview(
+    target: GameObject?,
     scanId: Int,
     modifier: Modifier,
     onResult: (DetectionResult) -> Unit,
@@ -180,7 +264,8 @@ private fun ChairCameraPreview(
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnResult by rememberUpdatedState(onResult)
     val currentOnError by rememberUpdatedState(onError)
-    val controller = remember(context, scanId) {
+
+    val controller = remember(context, scanId, target) {
         LifecycleCameraController(context).apply {
             cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
@@ -190,47 +275,53 @@ private fun ChairCameraPreview(
 
     AndroidView(
         modifier = modifier,
-        factory = { PreviewView(it).apply {
-            // TextureView avoids SurfaceView drawing over the Compose controls.
-            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-            scaleType = PreviewView.ScaleType.FILL_CENTER
-        } },
+        factory = {
+            PreviewView(it).apply {
+                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                scaleType = PreviewView.ScaleType.FILL_CENTER
+            }
+        },
         update = { it.controller = controller },
         onRelease = { it.controller = null },
     )
 
-    DisposableEffect(controller, lifecycleOwner) {
-        val detector = ObjectDetector()
+    DisposableEffect(controller, lifecycleOwner, target) {
+        val detector = ObjectDetector(target = target)
         val executor = ContextCompat.getMainExecutor(context)
         var disposed = false
         var finished = false
+
         val analyzer = detector.createAnalyzer(executor) { result ->
             if (!disposed && !finished) {
                 currentOnResult(result)
-                if (result.recognizedObject != null || result.error != null) {
+                if ((result.recognizedObject != null) || (result.error != null)) {
                     finished = true
                     controller.clearImageAnalysisAnalyzer()
                 }
             }
         }
-        controller.initializationFuture.addListener({
-            if (!disposed) {
-                try {
-                    controller.initializationFuture.get()
-                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) !=
-                        PackageManager.PERMISSION_GRANTED
-                    ) {
-                        currentOnError("Camera permission was removed. Enable it in app settings.")
-                    } else {
-                        controller.setImageAnalysisAnalyzer(executor, analyzer)
-                        controller.bindToLifecycle(lifecycleOwner)
+
+        controller.initializationFuture.addListener(
+            {
+                if (!disposed) {
+                    try {
+                        controller.initializationFuture.get()
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            currentOnError("Camera permission removed. Enable in app settings.")
+                        } else {
+                            controller.setImageAnalysisAnalyzer(executor, analyzer)
+                            controller.bindToLifecycle(lifecycleOwner)
+                        }
+                    } catch (_: Exception) {
+                        controller.clearImageAnalysisAnalyzer()
+                        currentOnError("Could not start rear camera. Close other camera apps and tap Retry.")
                     }
-                } catch (error: Exception) {
-                    controller.clearImageAnalysisAnalyzer()
-                    currentOnError("Could not start the rear camera. Close other camera apps and tap Retry.")
                 }
-            }
-        }, executor)
+            },
+            executor,
+        )
 
         onDispose {
             disposed = true

@@ -45,4 +45,6 @@ dependencies {
     implementation(libs.camera.mlkit.vision)
     // Bundles the model so recognition works immediately, including offline.
     implementation(libs.mlkit.image.labeling)
+
+    testImplementation(libs.junit)
 }
