@@ -112,4 +112,92 @@ class ObjectDetectionTest {
         assertFalse(result.isConfirmed)
         assertEquals(1, result.streakCount)
     }
+
+    /** Checks inclusive confidence threshold behavior at the exact boundary. */
+    @Test
+    fun testConfidenceThresholdBoundary() {
+        val target = GameObject("Chair", Rarity.COMMON, 10)
+        assertNull(matcher.findTargetMatch(target, listOf(RawLabel("Chair", 0.5999f))))
+        assertNotNull(matcher.findTargetMatch(target, listOf(RawLabel("Chair", 0.60f))))
+        assertNotNull(matcher.findTargetMatch(target, listOf(RawLabel("Chair", 0.6001f))))
+    }
+
+    /** Empty, unknown, and blank labels must not become catalog matches. */
+    @Test
+    fun testEmptyUnknownAndBlankLabelsHaveNoMatch() {
+        assertTrue(matcher.findMatches(emptyList()).isEmpty())
+        assertTrue(matcher.findMatches(listOf(RawLabel("Aurora", 0.99f))).isEmpty())
+        assertTrue(matcher.findMatches(listOf(RawLabel("", 0.99f), RawLabel("   ", 0.99f))).isEmpty())
+    }
+
+    /** Specific hunts ignore higher-confidence labels for other supported objects. */
+    @Test
+    fun testTargetSelectionUsesHighestConfidenceMatchingAlias() {
+        val target = GameObject("Chair", Rarity.COMMON, 10)
+        val result = matcher.findTargetMatch(
+            target,
+            listOf(RawLabel("Plant", 0.99f), RawLabel("Chair", 0.70f), RawLabel("Armchair", 0.90f)),
+        )
+        assertEquals("Chair", result?.gameObject?.name)
+        assertEquals("Armchair", result?.matchedLabel)
+        assertEquals(0.90f, result?.confidence ?: 0f, 0.0001f)
+    }
+
+    /** Display filtering returns no label when every result is generic or empty. */
+    @Test
+    fun testSanitizerReturnsNullWithoutMeaningfulLabels() {
+        assertNull(sanitizer.extractVisibleLabel(emptyList()))
+        assertNull(sanitizer.extractVisibleLabel(
+            listOf(RawLabel(" Product ", 0.99f), RawLabel("MATERIAL", 0.90f), RawLabel("", 1f)),
+        ))
+    }
+
+    /** The maximum permitted gap remains part of the same streak. */
+    @Test
+    fun testTimeGapAtMaximumPreservesStreak() {
+        frameFilter.processFrame(true, 0.60f, 1000L)
+        val result = frameFilter.processFrame(true, 0.90f, 2500L)
+        assertFalse(result.isConfirmed)
+        assertEquals(2, result.streakCount)
+        assertEquals(0.75f, result.averageConfidence, 0.0001f)
+    }
+
+    /** One millisecond beyond the maximum starts a new confidence window. */
+    @Test
+    fun testTimeGapJustBeyondMaximumResetsConfidence() {
+        frameFilter.processFrame(true, 0.60f, 1000L)
+        val result = frameFilter.processFrame(true, 0.90f, 2501L)
+        assertFalse(result.isConfirmed)
+        assertEquals(1, result.streakCount)
+        assertEquals(0.90f, result.averageConfidence, 0.0001f)
+    }
+
+    /** Timestamp zero is a valid first frame, not an unset-time sentinel. */
+    @Test
+    fun testTimeGapAfterFrameAtTimestampZeroResetsStreak() {
+        frameFilter.processFrame(true, 0.60f, 0L)
+        val result = frameFilter.processFrame(true, 0.90f, 1501L)
+        assertEquals(1, result.streakCount)
+        assertEquals(0.90f, result.averageConfidence, 0.0001f)
+    }
+
+    /** Explicit reset discards a confirmed streak and its previous confidence. */
+    @Test
+    fun testExplicitResetClearsConfirmedStreak() {
+        repeat(3) { frameFilter.processFrame(true, 0.90f, 1000L + it * 100L) }
+        frameFilter.reset()
+        val result = frameFilter.processFrame(true, 0.60f, 1400L)
+        assertFalse(result.isConfirmed)
+        assertEquals(1, result.streakCount)
+        assertEquals(0.60f, result.averageConfidence, 0.0001f)
+    }
+
+    /** Configurable streak counts allow immediate or longer confirmation. */
+    @Test
+    fun testCustomRequiredStreak() {
+        assertTrue(TemporalFrameFilter(requiredStreak = 1).processFrame(true, 0.80f, 1000L).isConfirmed)
+        val filter = TemporalFrameFilter(requiredStreak = 4)
+        repeat(3) { assertFalse(filter.processFrame(true, 0.80f, 1000L + it * 100L).isConfirmed) }
+        assertTrue(filter.processFrame(true, 0.80f, 1300L).isConfirmed)
+    }
 }
