@@ -69,14 +69,13 @@ fun AuthScreen(store: AuthStore, onAuthenticated: (Player) -> Unit, modifier: Mo
             label = "authMode",
         ) { m ->
             when (m) {
-                AuthMode.Menu -> TitleMenu(onSelect = { mode = it })
+                AuthMode.Menu -> TitleMenu { mode = it }
                 AuthMode.LogIn, AuthMode.SignUp -> AuthForm(
                     signUp = m == AuthMode.SignUp,
                     store = store,
                     onAuthenticated = onAuthenticated,
                     onSwitch = { mode = if (m == AuthMode.SignUp) AuthMode.LogIn else AuthMode.SignUp },
-                    onBack = { mode = AuthMode.Menu },
-                )
+                ) { mode = AuthMode.Menu }
             }
         }
     }

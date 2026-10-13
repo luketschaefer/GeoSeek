@@ -18,45 +18,46 @@ data class LabelMatch(
 )
 
 /**
- * Maps raw ML Kit vision output labels to [GameObject]s using canonical names and alias dictionaries.
+ * Maps raw ML Kit vision output labels to [GameObject]s using canonical names and expanded alias dictionaries.
  *
  * Integrates with **Google ML Kit Image Labeling (`com.google.mlkit.vision.label`)** output by providing
- * synonym/alias mapping (e.g. mapping ML Kit's `"Houseplant"` to `Plant`, `"Notebook computer"` to `Laptop`,
- * `"Mug"` to `Cup`, `"Sofa"` to `Couch`, `"Smartphone"` to `Mobile Phone`) to improve detection accuracy.
+ * synonym/alias mapping to improve detection accuracy and prevent misclassifications (e.g. accepting flowerpot for plant).
  *
  * @param defaultConfidenceThreshold Default minimum confidence threshold for valid matches.
  */
 class ObjectLabelMatcher(
-    private val defaultConfidenceThreshold: Float = 0.60f,
+    private val defaultConfidenceThreshold: Float = 0.50f,
 ) {
     private val aliasMap: Map<String, List<String>> = mapOf(
-        "Chair" to listOf("chair", "armchair", "folding chair", "office chair", "seat", "deckchair", "rocking chair"),
-        "Table" to listOf("table", "desk", "coffee table", "dining table", "nightstand", "countertop"),
-        "Couch" to listOf("couch", "sofa", "studio couch", "loveseat", "settee", "futon"),
-        "Bed" to listOf("bed", "bedstead", "mattress", "bunk bed"),
-        "Lamp" to listOf("lamp", "lighting", "table lamp", "lantern", "lampshade", "floor lamp"),
-        "Plant" to listOf("plant", "houseplant", "potted plant", "flora", "botany", "succulent", "fern", "leaf"),
-        "Flower" to listOf("flower", "blossom", "rose", "tulip", "petal", "bouquet"),
-        "Tree" to listOf("tree", "woody plant", "shrub", "trunk", "conifer"),
-        "Laptop" to listOf("laptop", "notebook computer", "laptop computer", "computer monitor", "personal computer", "netbook"),
-        "Mobile Phone" to listOf("mobile phone", "cellphone", "cellular telephone", "smartphone", "telephone", "phone"),
-        "Television" to listOf("television", "tv", "flat panel display", "television set", "media player"),
-        "Keyboard" to listOf("keyboard", "computer keyboard", "typewriter"),
+        "Chair" to listOf("chair", "armchair", "folding chair", "office chair", "seat", "deckchair", "rocking chair", "bench", "stool", "recliner", "swivel chair"),
+        "Table" to listOf("table", "desk", "coffee table", "dining table", "nightstand", "countertop", "stand", "workbench"),
+        "Couch" to listOf("couch", "sofa", "studio couch", "loveseat", "settee", "futon", "armchair"),
+        "Bed" to listOf("bed", "bedstead", "mattress", "bunk bed", "duvet", "pillow"),
+        "Lamp" to listOf("lamp", "lighting", "table lamp", "lantern", "lampshade", "floor lamp", "light fixture", "light"),
+        "Plant" to listOf("plant", "houseplant", "potted plant", "flora", "botany", "succulent", "fern", "leaf", "flowerpot", "planter", "vase", "flower", "blossom", "petal", "greenery", "vegetation"),
+        "Flower" to listOf("flower", "blossom", "rose", "tulip", "petal", "bouquet", "flowerpot", "plant", "potted plant", "houseplant", "flora"),
+        "Tree" to listOf("tree", "woody plant", "shrub", "trunk", "conifer", "evergreen", "palm", "branch"),
+        "Laptop" to listOf("laptop", "notebook computer", "laptop computer", "computer", "computer monitor", "personal computer", "netbook", "screen", "display", "macbook"),
+        "Mobile Phone" to listOf("mobile phone", "cellphone", "cellular telephone", "smartphone", "telephone", "phone", "iphone", "android", "device", "handset"),
+        "Television" to listOf("television", "tv", "flat panel display", "television set", "media player", "screen", "monitor"),
+        "Keyboard" to listOf("keyboard", "computer keyboard", "typewriter", "keypad"),
         "Mouse" to listOf("mouse", "computer mouse", "trackpad"),
-        "Book" to listOf("book", "publication", "novel", "textbook", "hardcover"),
-        "Bottle" to listOf("bottle", "water bottle", "plastic bottle", "glass bottle", "flask"),
-        "Cup" to listOf("cup", "mug", "coffee cup", "drinkware", "teacup", "beverageware"),
-        "Backpack" to listOf("backpack", "bag", "rucksack", "knapsack", "handbag", "school bag"),
-        "Shoe" to listOf("shoe", "footwear", "sneakers", "boot", "athletic shoe", "sandal"),
-        "Clock" to listOf("clock", "wall clock", "alarm clock", "watch"),
-        "Bicycle" to listOf("bicycle", "bike", "cycle", "mountain bike"),
-        "Car" to listOf("car", "automobile", "vehicle", "sedan", "motor vehicle"),
-        "Dog" to listOf("dog", "canine", "puppy", "hound"),
+        "Book" to listOf("book", "publication", "novel", "textbook", "hardcover", "paperback", "magazine", "journal"),
+        "Bottle" to listOf("bottle", "water bottle", "plastic bottle", "glass bottle", "flask", "thermos", "container"),
+        "Cup" to listOf("cup", "mug", "coffee cup", "drinkware", "teacup", "beverageware", "glass", "tumbler"),
+        "Backpack" to listOf("backpack", "bag", "rucksack", "knapsack", "handbag", "school bag", "satchel", "tote"),
+        "Shoe" to listOf("shoe", "footwear", "sneakers", "boot", "athletic shoe", "sandal", "slipper"),
+        "Clock" to listOf("clock", "wall clock", "alarm clock", "watch", "timepiece"),
+        "Bicycle" to listOf("bicycle", "bike", "cycle", "mountain bike", "road bike"),
+        "Car" to listOf("car", "automobile", "vehicle", "sedan", "motor vehicle", "suv", "truck"),
+        "Dog" to listOf("dog", "canine", "puppy", "hound", "pooch"),
         "Cat" to listOf("cat", "feline", "kitten"),
     )
 
     /**
      * Searches raw ML Kit frame labels for a specific target [GameObject].
+     *
+     * Evaluates raw labels directly against the target's aliases first to prevent cross-category rejections.
      *
      * @param target Desired target object to look for.
      * @param labels List of raw [RawLabel]s produced by the vision analyzer.
@@ -68,6 +69,16 @@ class ObjectLabelMatcher(
         labels: List<RawLabel>,
         threshold: Float = defaultConfidenceThreshold,
     ): LabelMatch? {
+        val aliases = aliasMap[target.name] ?: listOf(target.name.lowercase())
+        val bestLabelMatch = labels
+            .filter { it.confidence >= threshold }
+            .firstOrNull { raw -> aliases.any { alias -> matchesAlias(raw.text, alias) } }
+
+        if (bestLabelMatch != null) {
+            return LabelMatch(target, bestLabelMatch.text, bestLabelMatch.confidence)
+        }
+
+        // Fallback to general matches
         val matches = findMatches(labels, threshold)
         return matches.firstOrNull { (gameObject, _, _) ->
             gameObject.name.equals(target.name, ignoreCase = true)
@@ -103,7 +114,7 @@ class ObjectLabelMatcher(
     private fun matchLabelToTarget(labelText: String): GameObject? {
         val normalized = labelText.trim().lowercase()
         for ((targetName, aliases) in aliasMap) {
-            if (aliases.any { normalized.contains(it) || it.contains(normalized) }) {
+            if (aliases.any { matchesAlias(normalized, it) }) {
                 return GameObject(
                     name = targetName,
                     rarity = getRarityForTarget(targetName),
@@ -112,6 +123,24 @@ class ObjectLabelMatcher(
             }
         }
         return null
+    }
+
+    /**
+     * Checks whether a normalized label string matches a given alias using word-aware comparison.
+     */
+    private fun matchesAlias(normalizedLabel: String, alias: String): Boolean {
+        val norm = normalizedLabel.trim().lowercase()
+        val a = alias.trim().lowercase()
+        if (norm == a) return true
+
+        val labelWords = norm.split(" ", "_", "-", "/")
+        val aliasWords = a.split(" ", "_", "-", "/")
+
+        if (labelWords.contains(a) || aliasWords.contains(norm)) return true
+        if (norm.contains(a) && a.length >= 4) return true
+        if (a.contains(norm) && norm.length >= 4) return true
+
+        return false
     }
 
     /**

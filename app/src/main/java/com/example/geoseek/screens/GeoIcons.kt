@@ -302,7 +302,8 @@ object ObjectSprites {
     /** The sprite for a catalog object, or a gem tinted by rarity for objects without art yet. */
     fun forObject(obj: GameObject): Sprite = when (obj.name.lowercase()) {
         "chair" -> Chair
-        "plant" -> Plant
+        "plant", "tree" -> Plant
+        "flower" -> Icons.Leaf
         "bicycle" -> Bicycle
         "hot air balloon" -> Balloon
         "telescope" -> Telescope

@@ -13,6 +13,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -21,11 +22,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -178,7 +181,7 @@ fun Panel(
 fun Modifier.entrance(index: Int, baseDelay: Int = 60): Modifier {
     val progress = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        delay(index * baseDelay.toLong())
+        delay(index.toLong() * baseDelay)
         progress.animateTo(1f, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessLow))
     }
     return graphicsLayer {
@@ -297,8 +300,8 @@ fun GeoTextField(
     imeAction: ImeAction = ImeAction.Next,
     onImeAction: () -> Unit = {},
 ) {
-    var focused by remember { mutableStateOf(false) }
-    var reveal by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(value = false) }
+    var reveal by remember { mutableStateOf(value = false) }
     val border by animateColorAsState(
         when {
             error -> GeoColors.Danger
@@ -388,6 +391,69 @@ fun StatSlot(label: String, value: String, icon: Sprite, accent: Color, modifier
         }
         Spacer(Modifier.height(6.dp))
         OutlinedText(value, GeoType.Title, outlineWidth = 2.5.dp)
+    }
+}
+
+/** Celebratory pixel-art overlay when player levels up. */
+@Composable
+fun LevelUpOverlay(
+    level: Int,
+    username: String,
+    onDismiss: () -> Unit,
+) {
+    val bob = rememberInfiniteTransition(label = "levelupBob")
+    val hop by bob.animateFloat(0f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "hop")
+    val pulse by bob.animateFloat(0.95f, 1.05f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "pulse")
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xD903051A))
+            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onDismiss)
+            .padding(28.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Panel(
+            Modifier
+                .widthIn(max = 420.dp)
+                .fillMaxWidth()
+                .clickable(remember { MutableInteractionSource() }, indication = null) {},
+            fill = Color(0xFA151B4D),
+            border = GeoColors.Gold,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    PixelSprite(Icons.Star, Modifier.size(28.dp), tint = GeoColors.Gold)
+                    Spacer(Modifier.width(10.dp))
+                    OutlinedText("LEVEL UP!", GeoType.Display, color = GeoColors.Gold, outlineWidth = 4.dp)
+                    Spacer(Modifier.width(10.dp))
+                    PixelSprite(Icons.Star, Modifier.size(28.dp), tint = GeoColors.Gold)
+                }
+                Spacer(Modifier.height(16.dp))
+                Box(
+                    Modifier
+                        .size(110.dp)
+                        .slot(border = GeoColors.Gold, fill = Color(0xFF2A285C))
+                        .padding(12.dp)
+                        .graphicsLayer { scaleX = pulse; scaleY = pulse },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    PixelSprite(
+                        explorerSprite(username),
+                        Modifier.fillMaxSize().graphicsLayer { translationY = -hop * 6.dp.toPx() },
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                OutlinedText("Level $level Explorer", GeoType.Title, color = GeoColors.Highlight, outlineWidth = 3.dp)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Congratulations $username! You reached Level $level.",
+                    style = GeoType.Body, color = GeoColors.TextSoft, textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(20.dp))
+                PixelButton("Awesome!", onDismiss, Modifier.fillMaxWidth(), color = GeoColors.Gold, icon = Icons.Star)
+            }
+        }
     }
 }
 

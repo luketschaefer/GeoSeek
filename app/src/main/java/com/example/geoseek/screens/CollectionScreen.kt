@@ -65,7 +65,7 @@ fun CollectionScreen(player: Player, onBack: () -> Unit) {
 
     val cards = OBJECT_LIST
         .sortedWith(compareByDescending<GameObject> { it.rarity }.thenBy { it.name })
-        .filter { filter == null || it.rarity == filter }
+        .filter { (filter == null) || (it.rarity == filter) }
     val found = OBJECT_LIST.count { it.name in player.cards }
 
     Box(Modifier.fillMaxSize()) {
@@ -83,7 +83,7 @@ fun CollectionScreen(player: Player, onBack: () -> Unit) {
                 Panel(Modifier.fillMaxWidth().entrance(0)) {
                     Column {
                         Row(verticalAlignment = Alignment.Bottom) {
-                            OutlinedText("$found", GeoType.Number, color = accent)
+                            OutlinedText(found.toString(), GeoType.Number, color = accent)
                             OutlinedText(" / ${OBJECT_LIST.size} cards", GeoType.Heading, Modifier.padding(bottom = 4.dp), color = GeoColors.TextSoft, outlineWidth = 2.dp)
                         }
                         Spacer(Modifier.height(10.dp))
@@ -202,7 +202,7 @@ fun TradingCard(obj: GameObject, discovered: Boolean, modifier: Modifier = Modif
 fun CardInspector(obj: GameObject?, discovered: Boolean, onClose: () -> Unit, headline: String? = null) {
     // Remember the last card so it stays drawn while the overlay fades out.
     var shown by remember { mutableStateOf(obj) }
-    if (obj != null) shown = obj
+    obj?.let { shown = it }
 
     AnimatedVisibility(obj != null, enter = fadeIn(tween(200)), exit = fadeOut(tween(220))) {
         val card = shown ?: return@AnimatedVisibility

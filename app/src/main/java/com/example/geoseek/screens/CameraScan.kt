@@ -77,7 +77,7 @@ fun CameraScan(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var permissionRevision by remember { mutableIntStateOf(0) }
-    var permanentlyDenied by remember { mutableStateOf(false) }
+    var permanentlyDenied by remember { mutableStateOf(value = false) }
     var scanId by remember { mutableIntStateOf(0) }
     var detection by remember { mutableStateOf(DetectionResult()) }
     var cameraError by remember { mutableStateOf<String?>(null) }
@@ -93,8 +93,8 @@ fun CameraScan(
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        permanentlyDenied = !granted && activity != null &&
-            !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA)
+        permanentlyDenied = (!granted) && (activity != null) &&
+            (!ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA))
         permissionRevision++
     }
     val hasPermission = permissionRevision.let {
@@ -105,7 +105,7 @@ fun CameraScan(
     LaunchedEffect(detection.recognizedObject) {
         val found = detection.recognizedObject ?: return@LaunchedEffect
         currentOnRecognized(found)
-        delay(1500)
+        delay(1500L)
         detection = DetectionResult()
         scanId++
     }
@@ -113,7 +113,7 @@ fun CameraScan(
     // A failed frame analysis retries on its own rather than leaving the viewfinder stuck.
     LaunchedEffect(detection.error) {
         if (detection.error == null) return@LaunchedEffect
-        delay(2000)
+        delay(2000L)
         detection = DetectionResult()
         scanId++
     }
@@ -133,8 +133,7 @@ fun CameraScan(
                 scanId = scanId,
                 modifier = Modifier.fillMaxSize().padding(4.dp).clip(PixelShape(4.dp)),
                 onResult = { detection = it },
-                onError = { cameraError = it },
-            )
+            ) { cameraError = it }
         }
         if (!hasPermission) {
             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
