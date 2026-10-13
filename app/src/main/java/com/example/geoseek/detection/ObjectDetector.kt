@@ -35,18 +35,18 @@ data class DetectionResult(
  *
  * @param target Specific [GameObject] to hunt for, or null to match any candidate in [targetPool].
  * @param targetPool Pool of valid findable objects when [target] is null.
- * @param confidenceThreshold Minimum confidence required for a label match (default 0.60f).
- * @param requiredStreak Number of consecutive matching frames required to confirm recognition.
+ * @param confidenceThreshold Minimum confidence required for a label match (default 0.50f).
+ * @param requiredStreak Number of consecutive matching frames required to confirm recognition (default 2).
  */
 class ObjectDetector(
     val target: GameObject? = OBJECT_LIST.firstOrNull { (name, _, _) -> name == "Chair" },
     val targetPool: List<GameObject> = OBJECT_LIST,
-    confidenceThreshold: Float = 0.60f,
-    requiredStreak: Int = 3,
+    confidenceThreshold: Float = 0.50f,
+    requiredStreak: Int = 2,
 ) : AutoCloseable {
 
     private val labeler = ImageLabeling.getClient(
-        ImageLabelerOptions.Builder().setConfidenceThreshold(0.40f).build(),
+        ImageLabelerOptions.Builder().setConfidenceThreshold(0.35f).build(),
     )
     private val matcher = ObjectLabelMatcher(defaultConfidenceThreshold = confidenceThreshold)
     private val sanitizer = LabelSanitizer()
@@ -55,9 +55,9 @@ class ObjectDetector(
     /**
      * Builds an [MlKitAnalyzer] bridge connecting CameraX frame pipelines to ML Kit models.
      *
-     * @param executor Serial callback [Executor] (typically [ContextCompat.getMainExecutor]) for thread-safe UI updates.
+     * @param executor Serial callback [Executor] for thread-safe UI updates.
      * @param onResult Callback function invoked per frame with an updated [DetectionResult].
-     * @return An [MlKitAnalyzer] instance ready to bind to CameraX [LifecycleCameraController].
+     * @return An [MlKitAnalyzer] instance ready to bind to CameraX preview controllers.
      */
     fun createAnalyzer(
         executor: Executor,
@@ -105,7 +105,7 @@ class ObjectDetector(
     }
 
     /**
-     * Releases underlying ML Kit [ImageLabeler] native resources.
+     * Releases underlying ML Kit native image labeler resources.
      *
      * Call when detaching from camera lifecycle to prevent resource leaks.
      */

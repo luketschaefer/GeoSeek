@@ -35,6 +35,12 @@ class ObjectDetectionTest {
         assertNotNull(plantMatch)
         assertEquals("Plant", plantMatch?.gameObject?.name)
 
+        // Verify flowerpot & flower match plant target
+        val flowerpotLabels = listOf(RawLabel("Flowerpot", 0.72f))
+        val potMatch = matcher.findTargetMatch(plantTarget, flowerpotLabels)
+        assertNotNull(potMatch)
+        assertEquals("Plant", potMatch?.gameObject?.name)
+
         val laptopTarget = GameObject("Laptop", Rarity.UNCOMMON, 30)
         val notebookLabels = listOf(RawLabel("Notebook computer", 0.82f))
 

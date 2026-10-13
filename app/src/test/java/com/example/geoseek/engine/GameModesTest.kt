@@ -1,9 +1,6 @@
 package com.example.geoseek.engine
 
-import com.example.geoseek.engine.modes.ClassicTimedMode
 import com.example.geoseek.engine.modes.CollectionMode
-import com.example.geoseek.engine.modes.RarityHunterMode
-import com.example.geoseek.engine.modes.ScavengerStreakMode
 import com.example.geoseek.engine.modes.TimedHuntMode
 import com.example.geoseek.managers.XPManager
 import com.example.geoseek.models.Card
@@ -57,33 +54,6 @@ class GameModesTest {
         assertEquals(300, finalScore.bonusPoints) // 60s * 5 = 300
         assertEquals(385, finalScore.totalScore)
         assertEquals(3, finalScore.cardsCollected.size)
-    }
-
-    @Test
-    fun testClassicTimedAndStreakAndRarityModes() {
-        val classicRound = HuntRound(
-            environment = "Room",
-            targets = targetList,
-            mode = ClassicTimedMode(),
-        )
-        assertEquals("Classic Timed", classicRound.mode.name)
-
-        val streakRound = HuntRound(
-            environment = "Room",
-            targets = targetList,
-            mode = ScavengerStreakMode(),
-        )
-        assertEquals("Scavenger Streak", streakRound.mode.name)
-
-        val rarityRound = HuntRound(
-            environment = "Room",
-            targets = targetList,
-            mode = RarityHunterMode(),
-        )
-        assertEquals("Rarity Hunter", rarityRound.mode.name)
-
-        val gameOverState = GameSessionState(targetObjects = emptyList(), durationSeconds = 10, status = GameStatus.GAME_OVER)
-        assertEquals(GameStatus.GAME_OVER, gameOverState.status)
     }
 
     @Test

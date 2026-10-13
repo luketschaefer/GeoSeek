@@ -61,12 +61,22 @@ fun GeoSeekRoot() {
     val store = remember { AuthStore(context) }
 
     var player by remember { mutableStateOf(store.currentPlayer()) }
-    var splashDone by rememberSaveable { mutableStateOf(false) }
+    var levelUpToShow by remember { mutableStateOf<Int?>(null) }
+    var splashDone by rememberSaveable { mutableStateOf(value = false) }
     var destination by rememberSaveable { mutableStateOf(Destination.Home) }
-    var immersive by remember { mutableStateOf(false) }
+    var immersive by remember { mutableStateOf(value = false) }
     // Keeps the menu drawn while it animates out after signing out.
     var lastPlayer by remember { mutableStateOf(player) }
     if (player != null) lastPlayer = player
+
+    fun updatePlayer(updated: Player) {
+        val oldLevel = player?.levelInfo?.level ?: 1
+        val newLevel = updated.levelInfo.level
+        if (newLevel > oldLevel) {
+            levelUpToShow = newLevel
+        }
+        player = updated
+    }
 
     // Draw behind the system bars with light icons, whatever the window theme says.
     LaunchedEffect(activity) {
@@ -95,7 +105,7 @@ fun GeoSeekRoot() {
             label = "stage",
         ) { s ->
             when (s) {
-                Stage.Splash -> Splash(player, onFinished = { splashDone = true })
+                Stage.Splash -> Splash(player) { splashDone = true }
                 Stage.Auth -> AuthScreen(store, onAuthenticated = {
                     destination = Destination.Home
                     player = it
@@ -106,9 +116,9 @@ fun GeoSeekRoot() {
                         destination = destination,
                         onNavigate = { destination = it },
                         onImmersiveChange = { immersive = it },
-                        onHuntFinished = { result, found -> player = store.recordHunt(current, result.totalScore, result.totalXpEarned, found) },
-                        onCollect = { obj -> player = store.collect(current, obj) },
-                        onClaimQuest = { reward -> player = store.claimQuest(current, reward) },
+                        onHuntFinished = { res, found -> updatePlayer(store.recordHunt(current, res.totalScore, res.totalXpEarned, found)) },
+                        onCollect = { obj, xpEarned -> updatePlayer(store.collect(current, obj, xpEarned)) },
+                        onClaimQuest = { reward -> updatePlayer(store.claimQuest(current, reward)) },
                         onSignOut = {
                             store.signOut()
                             immersive = false
@@ -118,17 +128,27 @@ fun GeoSeekRoot() {
                 }
             }
         }
+
+        levelUpToShow?.let { lvl ->
+            lastPlayer?.let { p ->
+                LevelUpOverlay(
+                    level = lvl,
+                    username = p.username,
+                    onDismiss = { levelUpToShow = null },
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun Splash(player: Player?, onFinished: () -> Unit) {
-    var started by remember { mutableStateOf(false) }
+    var started by remember { mutableStateOf(value = false) }
     var dots by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
         started = true
         repeat(6) {
-            delay(280)
+            delay(280L)
             dots = (dots + 1) % 4
         }
         onFinished()
@@ -162,7 +182,7 @@ private fun MainContent(
     onNavigate: (Destination) -> Unit,
     onImmersiveChange: (Boolean) -> Unit,
     onHuntFinished: (result: GameScoreResult, found: List<GameObject>) -> Unit,
-    onCollect: (GameObject) -> Unit,
+    onCollect: (GameObject, Int?) -> Unit,
     onClaimQuest: (Int) -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -177,8 +197,8 @@ private fun MainContent(
         transitionSpec = {
             // Into a mode, the menu slides off to the left as the world travels right; back out, the reverse.
             val dir = if (targetState == Destination.Home) -1 else 1
-            (fadeIn(tween(420, delayMillis = 160)) + slideInHorizontally(tween(560, delayMillis = 80)) { it / 3 * dir }) togetherWith
-                (fadeOut(tween(220)) + slideOutHorizontally(tween(420)) { -it / 3 * dir })
+            (fadeIn(tween(420, delayMillis = 160)) + slideInHorizontally(tween(560, delayMillis = 80)) { (it / 3) * dir }) togetherWith
+                (fadeOut(tween(220)) + slideOutHorizontally(tween(420)) { (-it / 3) * dir })
         },
         label = "destination",
     ) { d ->

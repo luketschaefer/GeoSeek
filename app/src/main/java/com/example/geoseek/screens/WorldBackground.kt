@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.tooling.preview.Preview
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -665,3 +666,9 @@ private fun noise(x: Float, seed: Int): Float {
 }
 
 private fun fbm(x: Float, seed: Int) = noise(x, seed) * 0.65f + noise(x * 2.3f, seed + 17) * 0.35f
+
+@Preview
+@Composable
+private fun WorldBackgroundPreview() {
+    WorldBackground(scene = Scenes.Home)
+}
