@@ -4,12 +4,11 @@
 **Team Members:** Luke Erdman, Sean Kaliel, Luke Schaefer
 
 CURRENT STATE OF THE GAME
-1. The screens won't update when game state changes. HuntRound and XPManager use plain vars, which Compose doesn't watch. When the timer ticks or the score changes, the UI won't redraw. The standard fix is a ViewModel per screen that holds state in mutableStateOf or a StateFlow. It adds one small dependency (lifecycle-viewmodel-compose) and no DI framework. The timer should also run in the ViewModel as a coroutine, which keeps HuntRound as plain logic you can unit-test with JUnit (your README mentions JUnit).
-
-3. ObjectDetector.detect() has the wrong shape. It currently returns a result right away, but ML Kit labels images asynchronously and camera frames arrive continuously through CameraX. It should become a CameraX ImageAnalysis.Analyzer that reports matches through a callback, e.g. onObjectFound: (GameObject) -> Unit. Settle this early, since whoever leads the computer vision work will build on that signature.
-
-3. Progress isn't saved. Nothing is persisted yet, so XP and cards will reset every time the app restarts. Once XP and cards exist, SharedPreferences or DataStore will be enough, and you won't need a database.                                                                                                                                     
-  6. Navigation will outgrow the enum. The enum + when works for four tabs, but the system back button currently exits the app. Hunt will also turn into a flow (pick an environment → camera → results). If that becomes awkward, switching to navigation-compose is a contained change inside MainActivity.
+1. **Real-Time Reactive UI & State Management**: Built with Jetpack Compose featuring a custom pixel-art design system (`GeoTheme`, `GeoColors`, `GeoType`, pixel panels, and logo typography). Screen state updates reactively on countdown ticks, real-time object detections, score updates, quest claims, and level-up events.
+2. **Asynchronous Real-Time Vision Pipeline**: Integrates CameraX (`LifecycleCameraController`, `ImageAnalysis`) with Google ML Kit Image Labeling (`MlKitAnalyzer`). Uses `ObjectDetector`, `ObjectLabelMatcher`, `LabelSanitizer`, and `TemporalFrameFilter` with expanded word-aware alias dictionaries (e.g. matching `flowerpot` and `houseplant` to `Plant`) and 2-frame temporal streak validation for smooth recognition.
+3. **Engine Architecture & Game Modes**: Implements the Strategy Design Pattern (`GameMode` interface, `GameSessionState`, `GameRuleOutcome`, `GameScoreResult`). Features **Timed Hunt Mode** (racing the clock across Indoors, Park, and Streets environments with remaining time score bonuses) and **Free Look Mode** (`CollectionMode` for untimed card discovery and rarity XP).
+4. **Explorer Accounts, Progression Persistence & Leveling**: On-device explorer profile system backed by `AuthStore` and local `SharedPreferences`. Features PBKDF2 password hashing, persistent level progress (`XPManager`), trading card binder, best scores, daily quest tracking, and animated `LevelUpOverlay` celebrations.
+5. **Automated Testing Suite**: Tested with JUnit unit tests covering vision label matching, alias resolution, temporal frame streak filtering, `TimedHuntMode` scoring/timer, `CollectionMode` trading cards, and `XPManager` level progression.
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -31,14 +30,14 @@ This application will task the user, based on the mode selected, to complete tas
 **Won't** <ol><li>Live AI generated quests</li><li>Global card trading</li></ol>
 
 ### Tooling Strategy: 
-We plan on using the Claude Pro coding agent to assist development throughout the course of our project. We may also employ various testing tools, such as JUnit or Stryker Mutator, and XML formatters/verifiers to aid development. Hopefully using this we can achieve as many of our should’s and could’s as possible.
+We are using Claude Pro, Gemini Pro, and Codex Pro coding agents to assist development throughout the course of our project. We may also employ various testing tools, such as JUnit or Stryker Mutator, and XML formatters/verifiers to aid development. Hopefully using this we can achieve as many of our should’s and could’s as possible.
 
 ## 2. Targeted Platform & Initial Programming Language / Libraries use
 **Target Platform:** 
-We plan to develop GeoSeek on Android Studio, and deploy it as an independent mobile app which can be played on any Android device. Development in phase two could include iOS support. 
+We are developing GeoSeek on Android Studio, and deploy it as an independent mobile app which can be played on any Android device. Development in phase two could include iOS support. 
 
 **Programming Language(s):** 
-The app, which will be developed through Android Studio, will employ two of the primary supported languages present on the software, Java and XML.
+The app, which is being developed through Android Studio, employs Kotlin and XML.
 
 **Frameworks & Libraries:**
 CameraX
@@ -100,12 +99,36 @@ Single-module Android app (Kotlin + Jetpack Compose). Build with `./gradlew asse
 
 ```
 app/src/main/java/com/example/geoseek/
-├── MainActivity.kt        App entry point and simple screen switching
-├── screens/               One Compose screen per file: Home, Hunt, Collection, Profile
-├── engine/HuntRound.kt    A single hunt round: timer, targets, score
-├── managers/XPManager.kt  Player XP, level, and daily quest bonus
-├── models/                Plain data: GameObject + Rarity, Card, ObjectList (example objects)
-└── detection/             ObjectDetector (ML Kit Image Labeling goes here)
+├── MainActivity.kt               App entry point setting up GeoSeekRoot UI
+├── detection/                    Real-time computer vision pipeline
+│   ├── LabelSanitizer.kt         Filters non-object ML Kit structural tags
+│   ├── ObjectDetector.kt         Orchestrates CameraX frame analysis & ML Kit labeler
+│   ├── ObjectLabelMatcher.kt     Maps vision labels to targets using alias dictionaries
+│   └── TemporalFrameFilter.kt    Enforces multi-frame streak rules for smooth detection
+├── engine/                       Domain game engine & rules strategies
+│   ├── GameMode.kt               Strategy interface, session states, and outcome results
+│   ├── HuntRound.kt              Active hunt session orchestrator & countdown timer
+│   └── modes/
+│       ├── CollectionMode.kt     Untimed free-look discovery & card collecting strategy
+│       └── TimedHuntMode.kt      Timed hunt strategy with speed bonus scoring
+├── managers/
+│   └── XPManager.kt              Player experience points & level curve calculations
+├── models/                       Domain data models
+│   ├── Card.kt                   Collectible trading card model
+│   ├── GameObject.kt             Findable real-world target model & Rarity enum
+│   └── ObjectList.kt             Global catalog of 20+ findable targets
+└── screens/                      Jetpack Compose UI & navigation
+    ├── AuthScreen.kt             Title screen with Sign In & Sign Up forms
+    ├── AuthStore.kt              Local account management, PBKDF2 hashing, and persistence
+    ├── CameraScan.kt             CameraX preview view, scan line, & reticle overlays
+    ├── CollectionScreen.kt       Card binder view, rarity filters, & card inspector
+    ├── Components.kt             Pixel art design system components & LevelUpOverlay
+    ├── ExploreScreen.kt          Free Look screen powered by CollectionMode
+    ├── GeoIcons.kt               Custom pixel-art icon and object sprite renderers
+    ├── GeoSeekRoot.kt            App shell, stage state, and navigation routing
+    ├── GeoTheme.kt               Pixel art colors, typography, & scene themes
+    ├── HomeScreen.kt             Main menu, player badge, and daily quest panel
+    ├── HuntScreen.kt             Timed hunt setup, active HUD, and results breakdown
+    ├── ProfileScreen.kt          Explorer stats, level progress, and account settings
+    └── WorldBackground.kt        Animated parallax biome background
 ```
-
-CameraX, ML Kit, and ARCore/SceneView are not added yet; see the TODO in `app/build.gradle.kts`.
