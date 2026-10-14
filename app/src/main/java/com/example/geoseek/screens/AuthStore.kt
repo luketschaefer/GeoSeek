@@ -105,13 +105,14 @@ class AuthStore(context: Context) {
         return loadPlayer(name) ?: player
     }
 
-    /** Adds a card. A card is worth its points in XP, but only the first time it's found. */
-    fun collect(player: Player, obj: GameObject): Player {
+    /** Adds a card. Optional [xpEarned] parameter allows custom game modes (e.g. CollectionMode) to award dynamic XP. */
+    fun collect(player: Player, obj: GameObject, xpEarned: Int? = null): Player {
         val name = player.username
         val isNew = obj.name !in player.cards
+        val addedXp = xpEarned ?: if (isNew) obj.points else 0
         prefs.edit()
             .putStringSet(key(name, "cards"), player.cards + obj.name)
-            .putInt(key(name, "xp"), player.xp + if (isNew) obj.points else 0)
+            .putInt(key(name, "xp"), player.xp + addedXp)
             .putInt(key(name, "finds.${today()}"), player.findsToday + 1)
             .apply()
         return loadPlayer(name) ?: player

@@ -1,6 +1,5 @@
-// Hunt screen: pick an environment, count down, race the timer to find every target, then see the results.
-// Finds come from the camera (ObjectDetector); tapping a target also marks it found, for testing without one.
-// Scoring, the time bonus, and XP come from the round's GameMode.
+// Hunt screen: select environment area, race the clock to find targets, and earn time bonus rewards.
+// Finds come from the camera (ObjectDetector); tapping a target also marks it found, for testing.
 package com.example.geoseek.screens
 
 import androidx.activity.compose.BackHandler
@@ -57,9 +56,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.geoseek.engine.GameRuleOutcome
 import com.example.geoseek.engine.GameScoreResult
 import com.example.geoseek.engine.HuntRound
 import com.example.geoseek.engine.ObjectFindResult
+import com.example.geoseek.engine.modes.TimedHuntMode
 import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.OBJECT_LIST
 import kotlinx.coroutines.delay
@@ -83,24 +84,23 @@ fun HuntScreen(
 ) {
     val accent = Scenes.Hunt.accent
     var phase by remember { mutableStateOf(HuntPhase.Pick) }
-    var selected by remember { mutableIntStateOf(1) }
+    var selectedEnv by remember { mutableIntStateOf(1) }
     var round by remember { mutableStateOf<HuntRound?>(null) }
     var result by remember { mutableStateOf<GameScoreResult?>(null) }
-    // Compose can't observe HuntRound's plain fields, so the screen mirrors what it shows.
     val found = remember { mutableStateListOf<GameObject>() }
     var score by remember { mutableIntStateOf(0) }
     var secondsLeft by remember { mutableIntStateOf(0) }
     var bestBefore by remember { mutableIntStateOf(player.bestScore) }
-    var lastFind by remember { mutableStateOf<Pair<GameObject, Int>?>(null) }
+    var lastOutcome by remember { mutableStateOf<Pair<GameObject, GameRuleOutcome>?>(null) }
 
     fun startHunt() {
-        val env = ENVIRONMENTS[selected]
-        // TODO: Pick targets per environment once OBJECT_LIST is grouped by environment.
+        val env = ENVIRONMENTS[selectedEnv]
+        val modeInstance = TimedHuntMode(timeLimitSeconds = env.durationSeconds)
         val targets = OBJECT_LIST.shuffled().take(env.targetCount.coerceAtMost(OBJECT_LIST.size))
-        round = HuntRound(env.name, targets, env.durationSeconds)
+        round = HuntRound(env.name, targets, env.durationSeconds, modeInstance)
         found.clear()
         score = 0
-        lastFind = null
+        lastOutcome = null
         result = null
         secondsLeft = env.durationSeconds
         bestBefore = player.bestScore
@@ -123,7 +123,8 @@ fun HuntScreen(
         if (outcome.result != ObjectFindResult.ACCEPTED) return
         found += obj
         score = r.score
-        lastFind = obj to outcome.pointsEarned
+        secondsLeft = r.secondsLeft
+        lastOutcome = obj to outcome
         if (r.isOver()) finish()
     }
 
@@ -132,7 +133,7 @@ fun HuntScreen(
         val r = round
         if (phase != HuntPhase.Active || r == null) return@LaunchedEffect
         while (phase == HuntPhase.Active) {
-            delay(1000)
+            delay(1000L)
             r.tickTime()
             secondsLeft = r.secondsLeft
             if (r.isOver()) finish()
@@ -153,10 +154,16 @@ fun HuntScreen(
     ) { p ->
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             when (p) {
-                HuntPhase.Pick -> EnvironmentPicker(accent, selected, { selected = it }, ::startHunt, onBack)
-                HuntPhase.Countdown -> Countdown(onDone = { phase = HuntPhase.Active })
+                HuntPhase.Pick -> EnvironmentPicker(
+                    accent = accent,
+                    selected = selectedEnv,
+                    onSelect = { selectedEnv = it },
+                    onStart = ::startHunt,
+                    onBack = onBack,
+                )
+                HuntPhase.Countdown -> Countdown { phase = HuntPhase.Active }
                 HuntPhase.Active -> round?.let { r ->
-                    ActiveHunt(r, found, score, secondsLeft, accent, lastFind, onFind = ::find, onEnd = ::finish)
+                    ActiveHunt(r, found, score, secondsLeft, accent, lastOutcome, onFind = ::find, onEnd = ::finish)
                 }
                 HuntPhase.Results -> {
                     val r = round
@@ -174,15 +181,22 @@ fun HuntScreen(
 }
 
 @Composable
-private fun EnvironmentPicker(accent: Color, selected: Int, onSelect: (Int) -> Unit, onStart: () -> Unit, onBack: () -> Unit) {
+private fun EnvironmentPicker(
+    accent: Color,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    onStart: () -> Unit,
+    onBack: () -> Unit,
+) {
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        ScreenHeader("Hunt", "Pick where you are. Find every target before time runs out.", accent, onBack, Icons.Hunt)
+        ScreenHeader("Timed Hunt", "Select an area. Find targets fast for remaining time score bonuses!", accent, onBack, Icons.Hunt)
         Spacer(Modifier.height(20.dp))
+
         ENVIRONMENTS.forEachIndexed { i, env ->
             val isSelected = i == selected
             val border by animateColorAsState(if (isSelected) accent else GeoColors.SlotBorder, tween(200), label = "envBorder")
@@ -217,8 +231,9 @@ private fun EnvironmentPicker(accent: Color, selected: Int, onSelect: (Int) -> U
                 }
             }
         }
-        Spacer(Modifier.height(20.dp))
-        PixelButton("Start Hunt", onStart, Modifier.fillMaxWidth().entrance(ENVIRONMENTS.size), color = accent, icon = Icons.Hunt)
+
+        Spacer(Modifier.height(24.dp))
+        PixelButton("Start Timed Hunt", onStart, Modifier.fillMaxWidth().entrance(ENVIRONMENTS.size), color = accent, icon = Icons.Hunt)
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -246,7 +261,7 @@ private fun Countdown(onDone: () -> Unit) {
             label = "count",
         ) { c ->
             OutlinedText(
-                if (c > 0) "$c" else "GO!",
+                if (c > 0) c.toString() else "GO!",
                 GeoType.Logo.copy(fontSize = 110.sp),
                 color = if (c > 0) GeoColors.Text else GeoColors.Highlight,
                 outlineWidth = 8.dp,
@@ -262,7 +277,7 @@ private fun ActiveHunt(
     score: Int,
     secondsLeft: Int,
     accent: Color,
-    lastFind: Pair<GameObject, Int>?,
+    lastOutcome: Pair<GameObject, GameRuleOutcome>?,
     onFind: (GameObject) -> Unit,
     onEnd: () -> Unit,
 ) {
@@ -295,7 +310,7 @@ private fun ActiveHunt(
 
         Spacer(Modifier.height(14.dp))
         CameraScan(remaining, accent, Modifier.weight(1f).fillMaxWidth(), label = round.environment, onRecognized = onFind) {
-            FindPopup(lastFind)
+            FindPopup(lastOutcome)
         }
         Spacer(Modifier.height(14.dp))
 
@@ -341,17 +356,17 @@ private fun TargetSlot(obj: GameObject, isFound: Boolean, modifier: Modifier = M
         }
         Spacer(Modifier.height(4.dp))
         Text(obj.name, style = GeoType.Caption.copy(fontSize = 10.sp, lineHeight = 12.sp), color = GeoColors.Text, maxLines = 2, minLines = 2, textAlign = TextAlign.Center)
-        Text("${obj.points}", style = GeoType.Caption.copy(fontSize = 10.sp), color = GeoColors.Gold)
+        Text("${obj.points} pts", style = GeoType.Caption.copy(fontSize = 10.sp), color = GeoColors.Gold)
     }
 }
 
 /** A "+points" burst that floats up from the middle of the viewfinder after each find. */
 @Composable
-private fun FindPopup(find: Pair<GameObject, Int>?) {
-    if (find == null) return
-    val (obj, points) = find
-    val rise = remember(find) { Animatable(0f) }
-    LaunchedEffect(find) { rise.animateTo(1f, tween(1300)) }
+private fun FindPopup(pair: Pair<GameObject, GameRuleOutcome>?) {
+    if (pair == null) return
+    val (obj, outcome) = pair
+    val rise = remember(pair) { Animatable(0f) }
+    LaunchedEffect(pair) { rise.animateTo(1f, tween(1300)) }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -363,7 +378,7 @@ private fun FindPopup(find: Pair<GameObject, Int>?) {
                 scaleY = s
             },
         ) {
-            OutlinedText("+$points", GeoType.Display, color = GeoColors.Gold, outlineWidth = 4.dp)
+            OutlinedText("+${outcome.pointsEarned}", GeoType.Display, color = GeoColors.Gold, outlineWidth = 4.dp)
             OutlinedText("${obj.name} found!", GeoType.Heading, color = rarityColor(obj.rarity), outlineWidth = 2.5.dp)
         }
     }
@@ -405,13 +420,13 @@ private fun Results(
                 Text("SCORE", style = GeoType.Caption.copy(letterSpacing = 3.sp), color = GeoColors.TextSoft)
                 OutlinedText("${counted.value.toInt()}", GeoType.Logo, color = GeoColors.Gold, outlineWidth = 5.dp)
                 if (result.bonusPoints > 0) {
-                    Text("${result.basePoints} + ${result.bonusPoints} time bonus", style = GeoType.Label, color = GeoColors.TextSoft)
+                    Text("${result.basePoints} Base + ${result.bonusPoints} Time Bonus", style = GeoType.Label, color = GeoColors.TextSoft)
                 }
                 if (newBest) OutlinedText("New best!", GeoType.Heading, color = GeoColors.Highlight, outlineWidth = 2.5.dp)
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatSlot("Found", "${found.size}/${round.targets.size}", Icons.Hunt, accent, Modifier.weight(1f))
-                    StatSlot("XP", "+${result.totalXpEarned}", Icons.Star, GeoColors.Success, Modifier.weight(1f))
+                    StatSlot("XP Earned", "+${result.totalXpEarned}", Icons.Star, GeoColors.Success, Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(14.dp))
                 round.targets.forEach { obj ->
@@ -425,7 +440,7 @@ private fun Results(
                 }
                 if (found.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text("Found objects were added to your collection", style = GeoType.Caption, color = GeoColors.TextMuted)
+                    Text("Found objects were added to your card collection!", style = GeoType.Caption, color = GeoColors.TextMuted)
                 }
             }
         }
