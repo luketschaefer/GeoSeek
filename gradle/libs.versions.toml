@@ -22,6 +22,7 @@ camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = 
 camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
 camera-mlkit-vision = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camerax" }
 mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "mlkitImageLabeling" }
+mlkit-objects-detection = { module = "com.google.mlkit:object-detection", version = "17.0.2" }
 junit = { module = "junit:junit", version = "4.13.2" }
 robolectric = { module = "org.robolectric:robolectric", version = "4.17" }
 

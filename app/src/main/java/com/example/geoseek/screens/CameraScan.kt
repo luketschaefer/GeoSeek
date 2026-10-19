@@ -44,6 +44,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -79,7 +81,7 @@ fun CameraScan(
     var permissionRevision by remember { mutableIntStateOf(0) }
     var permanentlyDenied by remember { mutableStateOf(value = false) }
     var scanId by remember { mutableIntStateOf(0) }
-    var detection by remember { mutableStateOf(DetectionResult()) }
+    var detection by remember(targetPool) { mutableStateOf(DetectionResult()) }
     var cameraError by remember { mutableStateOf<String?>(null) }
     val currentOnRecognized by rememberUpdatedState(onRecognized)
 
@@ -123,17 +125,34 @@ fun CameraScan(
         cameraError != null -> cameraError
         detection.error != null -> detection.error
         targetPool.isEmpty() -> "Nothing left to find here"
+        detection.recognizedObject != null -> "Found: ${detection.recognizedObject?.name}"
         else -> detection.visibleLabel?.let { "Camera sees: $it" } ?: "Scanning…"
     }
 
     Viewfinder(accent, modifier, label = label, status = status, transparent = hasPermission) {
         if (hasPermission && targetPool.isNotEmpty()) {
-            CameraPreview(
-                targetPool = targetPool,
-                scanId = scanId,
-                modifier = Modifier.fillMaxSize().padding(4.dp).clip(PixelShape(4.dp)),
-                onResult = { detection = it },
-            ) { cameraError = it }
+            // The canvas and PreviewView share an origin and size, so CameraX's
+            // view-referenced coordinates account for rotation and FILL_CENTER cropping.
+            Box(Modifier.fillMaxSize().padding(4.dp).clip(PixelShape(4.dp))) {
+                CameraPreview(
+                    targetPool = targetPool,
+                    scanId = scanId,
+                    modifier = Modifier.fillMaxSize(),
+                    onResult = { detection = it },
+                ) { cameraError = it }
+                Canvas(Modifier.fillMaxSize()) {
+                    clipRect {
+                        detection.objectBounds.forEach { bounds ->
+                            if (bounds.width() > 0f && bounds.height() > 0f) {
+                                val topLeft = Offset(bounds.left, bounds.top)
+                                val boxSize = Size(bounds.width(), bounds.height())
+                                drawRect(accent.copy(alpha = 0.14f), topLeft, boxSize)
+                                drawRect(accent, topLeft, boxSize, style = Stroke(3.dp.toPx()))
+                            }
+                        }
+                    }
+                }
+            }
         }
         if (!hasPermission) {
             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {

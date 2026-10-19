@@ -1,5 +1,6 @@
 package com.example.geoseek.detection
 
+import android.graphics.RectF
 import android.os.SystemClock
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.mlkit.vision.MlKitAnalyzer
@@ -7,6 +8,8 @@ import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.OBJECT_LIST
 import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
+import com.google.mlkit.vision.objects.ObjectDetection
+import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import java.util.concurrent.Executor
 
 /**
@@ -22,6 +25,8 @@ data class DetectionResult(
     val confidence: Float = 0f,
     val visibleLabel: String? = null,
     val error: String? = null,
+    // Bounds in PreviewView pixels, already transformed by CameraX.
+    val objectBounds: List<RectF> = emptyList(),
 )
 
 /**
@@ -48,6 +53,12 @@ class ObjectDetector(
     private val labeler = ImageLabeling.getClient(
         ImageLabelerOptions.Builder().setConfidenceThreshold(0.35f).build(),
     )
+    private val objectLocator = ObjectDetection.getClient(
+        ObjectDetectorOptions.Builder()
+            .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
+            .enableMultipleObjects()
+            .build(),
+    )
     private val matcher = ObjectLabelMatcher(defaultConfidenceThreshold = confidenceThreshold)
     private val sanitizer = LabelSanitizer()
     private val temporalFilter = TemporalFrameFilter(requiredStreak = requiredStreak)
@@ -63,8 +74,8 @@ class ObjectDetector(
         executor: Executor,
         onResult: (DetectionResult) -> Unit,
     ): MlKitAnalyzer = MlKitAnalyzer(
-        listOf(labeler),
-        ImageAnalysis.COORDINATE_SYSTEM_ORIGINAL,
+        listOf(labeler, objectLocator),
+        ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
         executor,
     ) { result ->
         val failure = result.getThrowable(labeler)
@@ -81,7 +92,9 @@ class ObjectDetector(
         val match: LabelMatch? = if (activeTarget != null) {
             matcher.findTargetMatch(activeTarget, rawLabels)
         } else {
-            matcher.findMatches(rawLabels).firstOrNull()
+            matcher.findMatches(rawLabels).firstOrNull { candidate ->
+                targetPool.any { it.name.equals(candidate.gameObject.name, ignoreCase = true) }
+            }
         }
 
         val visibleLabel = sanitizer.extractVisibleLabel(rawLabels)
@@ -100,6 +113,8 @@ class ObjectDetector(
                 recognizedObject = confirmedObject,
                 confidence = if (match != null) averageConfidence else 0f,
                 visibleLabel = visibleLabel,
+                // Localization failure must not interrupt existing label recognition.
+                objectBounds = result.getValue(objectLocator).orEmpty().map { RectF(it.boundingBox) },
             ),
         )
     }
@@ -111,5 +126,6 @@ class ObjectDetector(
      */
     override fun close() {
         labeler.close()
+        objectLocator.close()
     }
 }
