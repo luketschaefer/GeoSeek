@@ -206,4 +206,205 @@ class ObjectDetectionTest {
         repeat(3) { assertFalse(filter.processFrame(true, 0.80f, 1000L + it * 100L).isConfirmed) }
         assertTrue(filter.processFrame(true, 0.80f, 1300L).isConfirmed)
     }
+
+    // Manual mutation demonstrations. Each test checks the production result and
+    // shows a specific faulty replacement producing a different result.
+    // Mutants stay local to these tests; production code is never swapped.
+
+    /** M1: confidence >= threshold mutated to confidence > threshold. */
+    @Test
+    fun mutationM1StrictConfidenceThresholdIsKilled() {
+        val threshold = 0.60f
+        val label = RawLabel("Chair", threshold)
+        val target = GameObject("Chair", Rarity.COMMON, 10)
+
+        assertNotNull(matcher.findTargetMatch(target, listOf(label), threshold))
+        val mutantAcceptsLabel = label.confidence > threshold
+        assertFalse("M1 incorrectly rejects confidence exactly at the threshold", mutantAcceptsLabel)
+    }
+
+    /** M2: currentStreak >= requiredStreak mutated to currentStreak > requiredStreak. */
+    @Test
+    fun mutationM2StrictStreakThresholdIsKilled() {
+        val requiredStreak = 3
+        val filter = TemporalFrameFilter(requiredStreak = requiredStreak)
+        repeat(2) { filter.processFrame(true, 0.80f, 1000L + it * 100L) }
+        val result = filter.processFrame(true, 0.80f, 1200L)
+
+        assertTrue(result.isConfirmed)
+        val mutantConfirmed = result.streakCount > requiredStreak
+        assertFalse("M2 incorrectly requires a fourth frame", mutantConfirmed)
+    }
+
+    /** M3: gap > maxGapMillis mutated to gap >= maxGapMillis. */
+    @Test
+    fun mutationM3InclusiveGapResetIsKilled() {
+        val maxGapMillis = 1500L
+        val filter = TemporalFrameFilter(maxGapMillis = maxGapMillis)
+        filter.processFrame(true, 0.60f, 1000L)
+        val result = filter.processFrame(true, 0.90f, 2500L)
+
+        assertEquals(2, result.streakCount)
+        val mutantStreak = if (2500L - 1000L >= maxGapMillis) 1 else 2
+        assertEquals("M3 incorrectly resets at the permitted gap", 1, mutantStreak)
+        assertTrue(result.streakCount != mutantStreak)
+    }
+
+    /** M4: normalized.length > 2 mutated to normalized.length >= 2. */
+    @Test
+    fun mutationM4InclusiveMinimumLabelLengthIsKilled() {
+        val normalized = "TV".trim().lowercase()
+
+        assertFalse(sanitizer.isMeaningfulLabel(normalized))
+        // "tv" is not suppressed, so only the length condition decides this case.
+        val mutantMeaningful = normalized.length >= 2
+        assertTrue("M4 incorrectly accepts a two-character label", mutantMeaningful)
+    }
+
+    /** M5: confidenceSum / currentStreak mutated to confidenceSum * currentStreak. */
+    @Test
+    fun mutationM5AverageDivisionReplacedByMultiplicationIsKilled() {
+        val filter = TemporalFrameFilter()
+        filter.processFrame(true, 0.60f, 1000L)
+        val result = filter.processFrame(true, 0.90f, 1100L)
+
+        assertEquals(0.75f, result.averageConfidence, 0.0001f)
+        val mutantAverage = (0.60f + 0.90f) * 2
+        assertEquals(3f, mutantAverage, 0.0001f)
+        assertTrue(kotlin.math.abs(result.averageConfidence - mutantAverage) > 0.0001f)
+    }
+
+    // Assignment: boundary value tests for TemporalFrameFilter.processFrame.
+
+    /** B1: 2 matching frames compared with a required streak of three. */
+    @Test
+    fun B1StreakOf2Frames() {
+        val filter = TemporalFrameFilter(requiredStreak = 3, maxGapMillis = 1500L)
+        var result = FilterResult(false, 0, 0f)
+        repeat(2) { index ->
+            result = filter.processFrame(true, 0.80f, 1000L + index * 100L)
+        }
+        assertEquals(2, result.streakCount)
+        assertEquals(false, result.isConfirmed)
+        assertEquals(0.80f, result.averageConfidence, 0.0001f)
+    }
+
+    /** B2: 3 matching frames compared with a required streak of three. */
+    @Test
+    fun B2StreakOf3Frames() {
+        val filter = TemporalFrameFilter(requiredStreak = 3, maxGapMillis = 1500L)
+        var result = FilterResult(false, 0, 0f)
+        repeat(3) { index ->
+            result = filter.processFrame(true, 0.80f, 1000L + index * 100L)
+        }
+        assertEquals(3, result.streakCount)
+        assertEquals(true, result.isConfirmed)
+        assertEquals(0.80f, result.averageConfidence, 0.0001f)
+    }
+
+    /** B3: 4 matching frames compared with a required streak of three. */
+    @Test
+    fun B3StreakOf4Frames() {
+        val filter = TemporalFrameFilter(requiredStreak = 3, maxGapMillis = 1500L)
+        var result = FilterResult(false, 0, 0f)
+        repeat(4) { index ->
+            result = filter.processFrame(true, 0.80f, 1000L + index * 100L)
+        }
+        assertEquals(4, result.streakCount)
+        assertEquals(true, result.isConfirmed)
+        assertEquals(0.80f, result.averageConfidence, 0.0001f)
+    }
+
+    /** B4: 1499 ms gap compared with the 1500 ms maximum. */
+    @Test
+    fun B4GapOf1499Milliseconds() {
+        val filter = TemporalFrameFilter(requiredStreak = 3, maxGapMillis = 1500L)
+        filter.processFrame(true, 0.60f, 1000L)
+        val result = filter.processFrame(true, 0.90f, 2499L)
+        assertFalse(result.isConfirmed)
+        assertEquals(2, result.streakCount)
+        assertEquals(0.75f, result.averageConfidence, 0.0001f)
+    }
+
+    /** B5: 1500 ms gap compared with the 1500 ms maximum. */
+    @Test
+    fun B5GapOf1500Milliseconds() {
+        val filter = TemporalFrameFilter(requiredStreak = 3, maxGapMillis = 1500L)
+        filter.processFrame(true, 0.60f, 1000L)
+        val result = filter.processFrame(true, 0.90f, 2500L)
+        assertFalse(result.isConfirmed)
+        assertEquals(2, result.streakCount)
+        assertEquals(0.75f, result.averageConfidence, 0.0001f)
+    }
+
+    /** B6: 1501 ms gap compared with the 1500 ms maximum. */
+    @Test
+    fun B6GapOf1501Milliseconds() {
+        val filter = TemporalFrameFilter(requiredStreak = 3, maxGapMillis = 1500L)
+        filter.processFrame(true, 0.60f, 1000L)
+        val result = filter.processFrame(true, 0.90f, 2501L)
+        assertFalse(result.isConfirmed)
+        assertEquals(1, result.streakCount)
+        assertEquals(0.90f, result.averageConfidence, 0.0001f)
+    }
+
+    // Assignment: equivalence partitions for LabelSanitizer.isMeaningfulLabel.
+    // P1: normalized length <= 2; P2: longer and suppressed; P3: longer and unsuppressed.
+
+    /** Empty input belongs to the short-label partition. */
+    @Test
+    fun assignmentP1EmptyLabel() {
+        val sanitizer = LabelSanitizer()
+        assertEquals(false, sanitizer.isMeaningfulLabel(""))
+    }
+
+    /** Whitespace normalizes to the short-label partition. */
+    @Test
+    fun assignmentP1WhitespaceLabel() {
+        val sanitizer = LabelSanitizer()
+        assertEquals(false, sanitizer.isMeaningfulLabel("   "))
+    }
+
+    /** Two characters remain in the rejected short-label partition. */
+    @Test
+    fun assignmentP1TwoCharactersLabel() {
+        val sanitizer = LabelSanitizer()
+        assertEquals(false, sanitizer.isMeaningfulLabel("TV"))
+    }
+
+    /** A long generic label belongs to the suppressed partition. */
+    @Test
+    fun assignmentP2SuppressedLabel() {
+        val sanitizer = LabelSanitizer()
+        assertEquals(false, sanitizer.isMeaningfulLabel("Product"))
+    }
+
+    /** Normalization preserves suppressed partition membership. */
+    @Test
+    fun assignmentP2NormalizedSuppressedLabel() {
+        val sanitizer = LabelSanitizer()
+        assertEquals(false, sanitizer.isMeaningfulLabel(" PRODUCT "))
+    }
+
+    /** A long unsuppressed label belongs to the accepted partition. */
+    @Test
+    fun assignmentP3ObjectLabel() {
+        val sanitizer = LabelSanitizer()
+        assertEquals(true, sanitizer.isMeaningfulLabel("Chair"))
+    }
+
+    /** Normalization preserves accepted partition membership. */
+    @Test
+    fun assignmentP3NormalizedObjectLabel() {
+        val sanitizer = LabelSanitizer()
+        assertEquals(true, sanitizer.isMeaningfulLabel(" cHaIr "))
+    }
+
+    /** An unsuppressed name need not exist in the game catalog. */
+    @Test
+    fun assignmentP3NonCatalogLabel() {
+        val sanitizer = LabelSanitizer()
+        assertEquals(true, sanitizer.isMeaningfulLabel("Aurora"))
+    }
+
 }
