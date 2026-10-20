@@ -31,7 +31,12 @@ internal class PlayerPrefs(val prefs: SharedPreferences) {
                     firstFoundMillis = prefs.getLong(cardKey(username, card, "first"), 0L),
                 )
             },
-            findsToday = prefs.getInt(key(username, "finds.${today()}"), 0),
+            daily = DailyProgress(
+                finds = prefs.getInt(key(username, "finds.${today()}"), 0),
+                rareFinds = prefs.getInt(key(username, "rare.${today()}"), 0),
+                newCards = prefs.getInt(key(username, "newcards.${today()}"), 0),
+                hunts = prefs.getInt(key(username, "hunts.${today()}"), 0),
+            ),
             questClaimedToday = prefs.getBoolean(key(username, "quest.${today()}"), false),
         )
     }

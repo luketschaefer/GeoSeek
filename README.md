@@ -112,6 +112,7 @@ app/src/main/java/com/example/geoseek/
 │   └── TemporalFrameFilter.kt    Enforces multi-frame streak rules for smooth detection
 ├── engine/                       Domain game engine & rules strategies
 │   ├── GameMode.kt               Strategy interface, session states, and outcome results
+│   ├── DailyQuests.kt            Daily quest rotation and goal types
 │   ├── HuntRound.kt              Active hunt session orchestrator & countdown timer
 │   ├── HuntTargets.kt            Picks hunt targets for an environment's habitat
 │   └── modes/

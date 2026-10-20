@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.example.geoseek.managers.XPManager
 import com.example.geoseek.models.GameObject
+import com.example.geoseek.models.Rarity
 
 /**
  * Saves progress for a signed-in [Player] and returns the player as stored afterwards.
@@ -16,6 +17,15 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
 
     private val prefs get() = store.prefs
     private fun key(username: String, field: String) = store.key(username, field)
+
+    /** Counts [found] toward today's finds, rare finds, and new cards for the daily quest. */
+    private fun SharedPreferences.Editor.addDailyFinds(player: Player, found: List<GameObject>) = apply {
+        val name = player.username
+        val day = today()
+        putInt(key(name, "finds.$day"), player.daily.finds + found.size)
+        putInt(key(name, "rare.$day"), player.daily.rareFinds + found.count { it.rarity >= Rarity.RARE })
+        putInt(key(name, "newcards.$day"), player.daily.newCards + found.map { it.name }.distinct().count { it !in player.cards })
+    }
 
     /** Adds one copy of each of [found] to [player]'s binder, dating any first finds [now]. */
     private fun SharedPreferences.Editor.addCards(player: Player, found: List<GameObject>, now: Long) = apply {
@@ -39,7 +49,8 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
             .putInt(key(name, "best"), maxOf(player.bestScore, score))
             .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, xpEarned))
             .addCards(player, found, System.currentTimeMillis())
-            .putInt(key(name, "finds.${today()}"), player.findsToday + found.size)
+            .addDailyFinds(player, found)
+            .putInt(key(name, "hunts.${today()}"), player.daily.hunts + 1)
             .apply()
         return store.load(name) ?: player
     }
@@ -51,8 +62,8 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
         val addedXp = xpEarned ?: if (isNew) obj.points else 0
         prefs.edit()
             .addCards(player, listOf(obj), System.currentTimeMillis())
+            .addDailyFinds(player, listOf(obj))
             .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, addedXp))
-            .putInt(key(name, "finds.${today()}"), player.findsToday + 1)
             .apply()
         return store.load(name) ?: player
     }

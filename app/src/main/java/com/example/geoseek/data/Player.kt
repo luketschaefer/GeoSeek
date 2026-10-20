@@ -12,6 +12,14 @@ import java.util.Calendar
  */
 data class CardRecord(val count: Int, val firstFoundMillis: Long)
 
+/** What a player has done today, for the daily quest. */
+data class DailyProgress(
+    val finds: Int = 0,
+    val rareFinds: Int = 0,
+    val newCards: Int = 0,
+    val hunts: Int = 0,
+)
+
 data class Player(
     val username: String,
     val joinedAtMillis: Long,
@@ -19,9 +27,12 @@ data class Player(
     val huntsPlayed: Int,
     val bestScore: Int,
     val binder: Map<String, CardRecord>,
-    val findsToday: Int,
+    val daily: DailyProgress,
     val questClaimedToday: Boolean,
 ) {
+    /** Objects found today, in any mode. */
+    val findsToday: Int get() = daily.finds
+
     /** Names of every object the player has a card for. */
     val cards: Set<String> get() = binder.keys
 

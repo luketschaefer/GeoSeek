@@ -1,5 +1,6 @@
 package com.example.geoseek.managers
 
+import com.example.geoseek.data.DailyProgress
 import com.example.geoseek.data.Player
 import com.example.geoseek.data.levelInfo
 import org.junit.Assert.assertEquals
@@ -15,7 +16,7 @@ class LevelCurveTest {
         huntsPlayed = 0,
         bestScore = 0,
         binder = emptyMap(),
-        findsToday = 0,
+        daily = DailyProgress(),
         questClaimedToday = false,
     )
 

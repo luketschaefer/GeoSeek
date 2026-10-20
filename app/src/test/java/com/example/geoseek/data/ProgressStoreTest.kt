@@ -104,4 +104,12 @@ class ProgressStoreTest {
         prefs().edit().putStringSet("user.explorer.cards", setOf("Chair")).commit()
         assertEquals(CardRecord(1, 0L), AuthStore(application).currentPlayer()!!.binder["Chair"])
     }
+
+    @Test
+    fun dailyProgress_countsRareFindsNewCardsAndHunts() {
+        val clock = GameObject("Clock", Rarity.RARE, 35)
+        val afterCollect = progress.collect(player, chair)
+        val afterHunt = progress.recordHunt(afterCollect, score = 0, xpEarned = 0, found = listOf(chair, dog, clock))
+        assertEquals(DailyProgress(finds = 4, rareFinds = 2, newCards = 3, hunts = 1), afterHunt.daily)
+    }
 }
