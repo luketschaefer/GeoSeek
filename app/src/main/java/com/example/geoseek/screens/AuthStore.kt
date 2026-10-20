@@ -28,12 +28,9 @@ data class LevelInfo(val level: Int, val intoLevel: Int, val needed: Int) {
     val progress: Float get() = intoLevel / needed.toFloat()
 }
 
-/** Level progress, using the same curve as XPManager (a new level every 100 XP). */
+/** Level progress, using XPManager's level curve. */
 val Player.levelInfo: LevelInfo
-    get() {
-        val manager = XPManager().apply { addXp(xp) }
-        return LevelInfo(manager.level, xp % 100, 100)
-    }
+    get() = LevelInfo(XPManager.levelFor(xp), XPManager.xpIntoLevel(xp), XPManager.XP_PER_LEVEL)
 
 sealed interface AuthResult {
     data class Success(val player: Player) : AuthResult
@@ -98,7 +95,7 @@ class AuthStore(context: Context) {
         prefs.edit()
             .putInt(key(name, "hunts"), player.huntsPlayed + 1)
             .putInt(key(name, "best"), maxOf(player.bestScore, score))
-            .putInt(key(name, "xp"), player.xp + xpEarned)
+            .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, xpEarned))
             .putStringSet(key(name, "cards"), player.cards + found.map { it.name })
             .putInt(key(name, "finds.${today()}"), player.findsToday + found.size)
             .apply()
@@ -112,7 +109,7 @@ class AuthStore(context: Context) {
         val addedXp = xpEarned ?: if (isNew) obj.points else 0
         prefs.edit()
             .putStringSet(key(name, "cards"), player.cards + obj.name)
-            .putInt(key(name, "xp"), player.xp + addedXp)
+            .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, addedXp))
             .putInt(key(name, "finds.${today()}"), player.findsToday + 1)
             .apply()
         return loadPlayer(name) ?: player
@@ -122,7 +119,7 @@ class AuthStore(context: Context) {
         if (player.questClaimedToday) return player
         val name = player.username
         prefs.edit()
-            .putInt(key(name, "xp"), player.xp + rewardXp)
+            .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, rewardXp))
             .putBoolean(key(name, "quest.${today()}"), true)
             .apply()
         return loadPlayer(name) ?: player

@@ -3,7 +3,6 @@ package com.example.geoseek.managers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 
 /**
@@ -131,11 +130,9 @@ class XPManagerBoundaryTest {
     }
 
     /**
-     * DEFECT FOUND: xp is a plain Int, so adding past Int.MAX_VALUE wraps around to a large negative number
-     * and the player's level becomes negative. Ignored so it doesn't break the team build; remove @Ignore
-     * once addXp caps or guards the addition.
+     * DEFECT FOUND (A4 report): xp was a plain Int, so adding past Int.MAX_VALUE wrapped around to a large
+     * negative number and the player's level became negative. Fixed by capping the addition in addXp.
      */
-    @Ignore("Known defect: xp overflows past Int.MAX_VALUE (see A4 report)")
     @Test
     fun b4_justAboveMaxInt_doesNotDecreaseXp() {
         val m = managerAt(Int.MAX_VALUE)
