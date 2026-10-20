@@ -40,6 +40,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.geoseek.data.AuthStore
+import com.example.geoseek.data.Player
+import com.example.geoseek.data.levelInfo
+import com.example.geoseek.data.ProgressStore
 import com.example.geoseek.engine.GameScoreResult
 import com.example.geoseek.models.GameObject
 import kotlinx.coroutines.delay
@@ -59,6 +63,7 @@ fun GeoSeekRoot() {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val store = remember { AuthStore(context) }
+    val progress = remember { ProgressStore(context) }
 
     var player by remember { mutableStateOf(store.currentPlayer()) }
     var levelUpToShow by remember { mutableStateOf<Int?>(null) }
@@ -116,9 +121,9 @@ fun GeoSeekRoot() {
                         destination = destination,
                         onNavigate = { destination = it },
                         onImmersiveChange = { immersive = it },
-                        onHuntFinished = { res, found -> updatePlayer(store.recordHunt(current, res.totalScore, res.totalXpEarned, found)) },
-                        onCollect = { obj, xpEarned -> updatePlayer(store.collect(current, obj, xpEarned)) },
-                        onClaimQuest = { reward -> updatePlayer(store.claimQuest(current, reward)) },
+                        onHuntFinished = { res, found -> updatePlayer(progress.recordHunt(current, res.totalScore, res.totalXpEarned, found)) },
+                        onCollect = { obj, xpEarned -> updatePlayer(progress.collect(current, obj, xpEarned)) },
+                        onClaimQuest = { reward -> updatePlayer(progress.claimQuest(current, reward)) },
                         onSignOut = {
                             store.signOut()
                             immersive = false

@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.geoseek.data.Player
 import com.example.geoseek.detection.CustomClassifier
 import com.example.geoseek.engine.GameRuleOutcome
 import com.example.geoseek.engine.GameScoreResult

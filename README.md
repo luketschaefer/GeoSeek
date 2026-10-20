@@ -7,7 +7,7 @@ CURRENT STATE OF THE GAME
 1. **Real-Time Reactive UI & State Management**: Built with Jetpack Compose featuring a custom pixel-art design system (`GeoTheme`, `GeoColors`, `GeoType`, pixel panels, and logo typography). Screen state updates reactively on countdown ticks, real-time object detections, score updates, quest claims, and level-up events.
 2. **Asynchronous Real-Time Vision Pipeline**: Integrates CameraX (`LifecycleCameraController`, `ImageAnalysis`) with Google ML Kit Image Labeling (`MlKitAnalyzer`). Uses `ObjectDetector`, `ObjectLabelMatcher`, `LabelSanitizer`, and `TemporalFrameFilter` with expanded word-aware alias dictionaries (e.g. matching `flowerpot` and `houseplant` to `Plant`) and 2-frame temporal streak validation for smooth recognition.
 3. **Engine Architecture & Game Modes**: Implements the Strategy Design Pattern (`GameMode` interface, `GameSessionState`, `GameRuleOutcome`, `GameScoreResult`). Features **Timed Hunt Mode** (racing the clock across Indoors, Park, and Streets environments with remaining time score bonuses) and **Free Look Mode** (`CollectionMode` for untimed card discovery and rarity XP).
-4. **Explorer Accounts, Progression Persistence & Leveling**: On-device explorer profile system backed by `AuthStore` and local `SharedPreferences`. Features PBKDF2 password hashing, persistent level progress (`XPManager`), trading card binder, best scores, daily quest tracking, and animated `LevelUpOverlay` celebrations.
+4. **Explorer Accounts, Progression Persistence & Leveling**: On-device explorer profile system backed by `AuthStore`, `ProgressStore`, and local `SharedPreferences`. Features PBKDF2 password hashing, persistent level progress (`XPManager`), trading card binder, best scores, daily quest tracking, and animated `LevelUpOverlay` celebrations.
 5. **Automated Testing Suite**: Tested with JUnit unit tests covering vision label matching, alias resolution, temporal frame streak filtering, `TimedHuntMode` scoring/timer, `CollectionMode` trading cards, and `XPManager` level progression.
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
@@ -100,6 +100,11 @@ Single-module Android app (Kotlin + Jetpack Compose). Build with `./gradlew asse
 ```
 app/src/main/java/com/example/geoseek/
 ├── MainActivity.kt               App entry point setting up GeoSeekRoot UI
+├── data/                         On-device persistence (SharedPreferences)
+│   ├── AuthStore.kt              Accounts, PBKDF2 password hashing, and the remembered session
+│   ├── Player.kt                 Player profile model and level info
+│   ├── PlayerPrefs.kt            Shared preference keys and player loading
+│   └── ProgressStore.kt          XP, cards, hunt stats, and daily quest progress
 ├── detection/                    Real-time computer vision pipeline
 │   ├── LabelSanitizer.kt         Filters non-object ML Kit structural tags
 │   ├── ObjectDetector.kt         Orchestrates CameraX frame analysis & ML Kit labeler
@@ -108,6 +113,7 @@ app/src/main/java/com/example/geoseek/
 ├── engine/                       Domain game engine & rules strategies
 │   ├── GameMode.kt               Strategy interface, session states, and outcome results
 │   ├── HuntRound.kt              Active hunt session orchestrator & countdown timer
+│   ├── HuntTargets.kt            Picks hunt targets for an environment's habitat
 │   └── modes/
 │       ├── CollectionMode.kt     Untimed free-look discovery & card collecting strategy
 │       └── TimedHuntMode.kt      Timed hunt strategy with speed bonus scoring
@@ -115,11 +121,10 @@ app/src/main/java/com/example/geoseek/
 │   └── XPManager.kt              Player experience points & level curve calculations
 ├── models/                       Domain data models
 │   ├── Card.kt                   Collectible trading card model
-│   ├── GameObject.kt             Findable real-world target model & Rarity enum
+│   ├── GameObject.kt             Findable real-world target model, Rarity & Habitat enums
 │   └── ObjectList.kt             Global catalog of 20+ findable targets
 └── screens/                      Jetpack Compose UI & navigation
     ├── AuthScreen.kt             Title screen with Sign In & Sign Up forms
-    ├── AuthStore.kt              Local account management, PBKDF2 hashing, and persistence
     ├── CameraScan.kt             CameraX preview view, scan line, & reticle overlays
     ├── CollectionScreen.kt       Card binder view, rarity filters, & card inspector
     ├── Components.kt             Pixel art design system components & LevelUpOverlay

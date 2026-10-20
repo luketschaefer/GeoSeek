@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.geoseek.data.Player
 import com.example.geoseek.engine.GameSessionState
 import com.example.geoseek.engine.modes.CollectionMode
 import com.example.geoseek.models.Card

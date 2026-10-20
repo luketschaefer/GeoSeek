@@ -1,7 +1,7 @@
 package com.example.geoseek.managers
 
-import com.example.geoseek.screens.Player
-import com.example.geoseek.screens.levelInfo
+import com.example.geoseek.data.Player
+import com.example.geoseek.data.levelInfo
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

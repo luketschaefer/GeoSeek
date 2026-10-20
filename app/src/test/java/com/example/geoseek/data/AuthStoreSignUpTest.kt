@@ -1,4 +1,4 @@
-package com.example.geoseek.screens
+package com.example.geoseek.data
 
 import android.app.Application
 import android.content.Context

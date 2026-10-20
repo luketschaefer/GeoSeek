@@ -25,6 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Calendar
+import com.example.geoseek.data.Player
+import com.example.geoseek.data.levelInfo
+import com.example.geoseek.data.today
 
 data class DailyQuest(val title: String, val detail: String, val goal: Int, val rewardXp: Int)
 

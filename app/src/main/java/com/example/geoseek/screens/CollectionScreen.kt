@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.geoseek.data.Player
 import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.OBJECT_LIST
 import com.example.geoseek.models.Rarity

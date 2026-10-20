@@ -38,6 +38,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.geoseek.data.AuthField
+import com.example.geoseek.data.AuthResult
+import com.example.geoseek.data.AuthStore
+import com.example.geoseek.data.Player
 
 private enum class AuthMode { Menu, LogIn, SignUp }
 

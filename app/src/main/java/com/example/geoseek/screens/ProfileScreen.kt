@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.geoseek.data.Player
+import com.example.geoseek.data.levelInfo
 import com.example.geoseek.models.OBJECT_LIST
 import java.text.DateFormat
 import java.util.Date
