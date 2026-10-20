@@ -12,6 +12,8 @@ internal class PlayerPrefs(val prefs: SharedPreferences) {
 
     fun key(username: String, field: String) = "user.${username.lowercase()}.$field"
 
+    fun cardKey(username: String, card: String, field: String) = key(username, "card.$card.$field")
+
     fun exists(username: String) = prefs.contains(key(username, "hash"))
 
     fun load(username: String): Player? {
@@ -22,7 +24,13 @@ internal class PlayerPrefs(val prefs: SharedPreferences) {
             xp = prefs.getInt(key(username, "xp"), 0),
             huntsPlayed = prefs.getInt(key(username, "hunts"), 0),
             bestScore = prefs.getInt(key(username, "best"), 0),
-            cards = prefs.getStringSet(key(username, "cards"), emptySet())!!.toSet(),
+            binder = prefs.getStringSet(key(username, "cards"), emptySet())!!.associateWith { card ->
+                CardRecord(
+                    // Cards saved before counts existed have no count key; they were found at least once.
+                    count = prefs.getInt(cardKey(username, card, "count"), 1).coerceAtLeast(1),
+                    firstFoundMillis = prefs.getLong(cardKey(username, card, "first"), 0L),
+                )
+            },
             findsToday = prefs.getInt(key(username, "finds.${today()}"), 0),
             questClaimedToday = prefs.getBoolean(key(username, "quest.${today()}"), false),
         )

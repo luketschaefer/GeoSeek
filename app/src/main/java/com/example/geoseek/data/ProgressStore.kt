@@ -2,6 +2,7 @@
 package com.example.geoseek.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.example.geoseek.managers.XPManager
 import com.example.geoseek.models.GameObject
 
@@ -16,9 +17,20 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
     private val prefs get() = store.prefs
     private fun key(username: String, field: String) = store.key(username, field)
 
+    /** Adds one copy of each of [found] to [player]'s binder, dating any first finds [now]. */
+    private fun SharedPreferences.Editor.addCards(player: Player, found: List<GameObject>, now: Long) = apply {
+        val name = player.username
+        putStringSet(key(name, "cards"), player.cards + found.map { it.name })
+        found.groupingBy { it.name }.eachCount().forEach { (card, copies) ->
+            val existing = player.binder[card]
+            putInt(store.cardKey(name, card, "count"), (existing?.count ?: 0) + copies)
+            if (existing == null) putLong(store.cardKey(name, card, "first"), now)
+        }
+    }
+
     /**
      * Records a finished hunt: the score counts toward the best score, the XP is banked,
-     * every found object joins the collection, and each find counts toward the daily quest.
+     * every found object adds a card (or a duplicate) to the collection, and each find counts toward the daily quest.
      */
     fun recordHunt(player: Player, score: Int, xpEarned: Int, found: List<GameObject>): Player {
         val name = player.username
@@ -26,7 +38,7 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
             .putInt(key(name, "hunts"), player.huntsPlayed + 1)
             .putInt(key(name, "best"), maxOf(player.bestScore, score))
             .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, xpEarned))
-            .putStringSet(key(name, "cards"), player.cards + found.map { it.name })
+            .addCards(player, found, System.currentTimeMillis())
             .putInt(key(name, "finds.${today()}"), player.findsToday + found.size)
             .apply()
         return store.load(name) ?: player
@@ -38,7 +50,7 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
         val isNew = obj.name !in player.cards
         val addedXp = xpEarned ?: if (isNew) obj.points else 0
         prefs.edit()
-            .putStringSet(key(name, "cards"), player.cards + obj.name)
+            .addCards(player, listOf(obj), System.currentTimeMillis())
             .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, addedXp))
             .putInt(key(name, "finds.${today()}"), player.findsToday + 1)
             .apply()

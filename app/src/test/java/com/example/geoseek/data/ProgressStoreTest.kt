@@ -86,4 +86,22 @@ class ProgressStoreTest {
         progress.recordHunt(player, score = 10, xpEarned = 5, found = listOf(chair))
         assertEquals(5, AuthStore(application).currentPlayer()!!.xp)
     }
+
+    @Test
+    fun duplicates_areCountedAndKeepTheirFirstFoundDate() {
+        val first = progress.collect(player, chair)
+        val firstFound = first.binder.getValue("Chair").firstFoundMillis
+        assertTrue(firstFound > 0)
+
+        val later = progress.recordHunt(first, score = 0, xpEarned = 0, found = listOf(chair, dog))
+        assertEquals(CardRecord(2, firstFound), later.binder["Chair"])
+        assertEquals(1, later.binder.getValue("Dog").count)
+        assertEquals(3, later.totalCards)
+    }
+
+    @Test
+    fun legacyCardsWithoutCounts_loadAsOneCopy() {
+        prefs().edit().putStringSet("user.explorer.cards", setOf("Chair")).commit()
+        assertEquals(CardRecord(1, 0L), AuthStore(application).currentPlayer()!!.binder["Chair"])
+    }
 }

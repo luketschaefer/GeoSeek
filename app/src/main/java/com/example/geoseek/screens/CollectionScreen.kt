@@ -52,10 +52,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.geoseek.data.CardRecord
 import com.example.geoseek.data.Player
 import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.OBJECT_LIST
 import com.example.geoseek.models.Rarity
+import java.text.DateFormat
+import java.util.Date
 
 @Composable
 fun CollectionScreen(player: Player, onBack: () -> Unit) {
@@ -89,6 +92,8 @@ fun CollectionScreen(player: Player, onBack: () -> Unit) {
                         }
                         Spacer(Modifier.height(10.dp))
                         PixelBar(found / OBJECT_LIST.size.coerceAtLeast(1).toFloat(), accent, Modifier.fillMaxWidth())
+                        Spacer(Modifier.height(10.dp))
+                        RarityProgress(player)
                     }
                 }
             }
@@ -99,13 +104,41 @@ fun CollectionScreen(player: Player, onBack: () -> Unit) {
                 TradingCard(
                     obj,
                     discovered = obj.name in player.cards,
+                    count = player.binder[obj.name]?.count ?: 0,
                     modifier = Modifier.animateItem().entrance(2 + cards.indexOf(obj).coerceAtMost(12), 40),
                     onClick = { inspecting = obj },
                 )
             }
         }
 
-        CardInspector(inspecting, inspecting?.name in player.cards, onClose = { inspecting = null })
+        CardInspector(
+            inspecting, inspecting?.name in player.cards, onClose = { inspecting = null },
+            record = inspecting?.let { player.binder[it.name] },
+        )
+    }
+}
+
+/** Cards found out of the catalog for each rarity, rarest first. */
+@Composable
+private fun RarityProgress(player: Player, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Rarity.entries.reversed().forEach { rarity ->
+            val inRarity = OBJECT_LIST.filter { it.rarity == rarity }
+            if (inRarity.isEmpty()) return@forEach
+            val owned = inRarity.count { it.name in player.cards }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "$owned/${inRarity.size}",
+                    style = GeoType.Label.copy(fontSize = 12.sp),
+                    color = if (owned == inRarity.size) GeoColors.Gold else GeoColors.Text,
+                )
+                Text(
+                    rarityLabel(rarity).uppercase(),
+                    style = GeoType.Caption.copy(fontSize = 9.sp, letterSpacing = 1.sp),
+                    color = rarityColor(rarity),
+                )
+            }
+        }
     }
 }
 
@@ -131,9 +164,9 @@ private fun RarityFilter(selected: Rarity?, modifier: Modifier = Modifier, onSel
     }
 }
 
-/** A trading card. Undiscovered cards show their back with a question mark. */
+/** A trading card. Undiscovered cards show their back with a question mark; duplicates show how many are held. */
 @Composable
-fun TradingCard(obj: GameObject, discovered: Boolean, modifier: Modifier = Modifier, large: Boolean = false, onClick: (() -> Unit)? = null) {
+fun TradingCard(obj: GameObject, discovered: Boolean, modifier: Modifier = Modifier, large: Boolean = false, count: Int = 0, onClick: (() -> Unit)? = null) {
     val color = rarityColor(obj.rarity)
     val shimmer = rememberInfiniteTransition(label = "shimmer")
     val sweep by shimmer.animateFloat(-0.6f, 1.6f, infiniteRepeatable(tween(2600, delayMillis = 900, easing = FastOutSlowInEasing), RepeatMode.Restart), label = "sweep")
@@ -172,6 +205,15 @@ fun TradingCard(obj: GameObject, discovered: Boolean, modifier: Modifier = Modif
                 )
                 Text("${obj.points} pts", style = GeoType.Caption.copy(fontSize = if (large) 13.sp else 10.sp), color = GeoColors.Gold)
             }
+            if (count > 1) {
+                OutlinedText(
+                    "x$count",
+                    GeoType.Label.copy(fontSize = if (large) 16.sp else 11.sp),
+                    Modifier.align(Alignment.TopEnd),
+                    color = GeoColors.Gold,
+                    outlineWidth = 2.dp,
+                )
+            }
             if (shine) {
                 Canvas(Modifier.fillMaxSize()) {
                     val x = size.width * sweep
@@ -200,7 +242,7 @@ fun TradingCard(obj: GameObject, discovered: Boolean, modifier: Modifier = Modif
 
 /** Full-screen look at one card. It flips in, and tapping anywhere closes it. */
 @Composable
-fun CardInspector(obj: GameObject?, discovered: Boolean, onClose: () -> Unit, headline: String? = null) {
+fun CardInspector(obj: GameObject?, discovered: Boolean, onClose: () -> Unit, headline: String? = null, record: CardRecord? = null) {
     // Remember the last card so it stays drawn while the overlay fades out.
     var shown by remember { mutableStateOf(obj) }
     obj?.let { shown = it }
@@ -234,15 +276,30 @@ fun CardInspector(obj: GameObject?, discovered: Boolean, onClose: () -> Unit, he
                             cameraDistance = 14f * density
                         },
                     large = true,
+                    count = record?.count ?: 0,
                 )
                 Spacer(Modifier.height(20.dp))
                 OutlinedText(
                     if (discovered) "Worth ${card.points} XP the first time it's found" else "Not found yet. Look for one in Free Look or a Hunt.",
                     GeoType.Body, color = GeoColors.TextSoft, outlineWidth = 2.dp, textAlign = TextAlign.Center,
                 )
+                if (discovered && record != null) {
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedText(
+                        cardHistory(record),
+                        GeoType.Caption, color = GeoColors.TextSoft, outlineWidth = 2.dp, textAlign = TextAlign.Center,
+                    )
+                }
                 Spacer(Modifier.height(10.dp))
                 Text("Tap anywhere to close", style = GeoType.Caption, color = GeoColors.TextMuted)
             }
         }
     }
+}
+
+/** "Found 3 times, first on Oct 19, 2026", leaving out the date for cards found before dates were kept. */
+fun cardHistory(record: CardRecord): String {
+    val times = if (record.count == 1) "Found once" else "Found ${record.count} times"
+    if (record.firstFoundMillis <= 0L) return times
+    return "$times, first on ${DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(record.firstFoundMillis))}"
 }

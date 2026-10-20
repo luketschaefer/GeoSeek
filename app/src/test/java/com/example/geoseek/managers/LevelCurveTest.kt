@@ -14,7 +14,7 @@ class LevelCurveTest {
         xp = xp,
         huntsPlayed = 0,
         bestScore = 0,
-        cards = emptySet(),
+        binder = emptyMap(),
         findsToday = 0,
         questClaimedToday = false,
     )
