@@ -53,24 +53,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.geoseek.detection.CustomClassifier
 import com.example.geoseek.engine.GameRuleOutcome
 import com.example.geoseek.engine.GameScoreResult
 import com.example.geoseek.engine.HuntRound
 import com.example.geoseek.engine.ObjectFindResult
+import com.example.geoseek.engine.huntPool
 import com.example.geoseek.engine.modes.TimedHuntMode
+import com.example.geoseek.engine.pickHuntTargets
 import com.example.geoseek.models.GameObject
-import com.example.geoseek.models.OBJECT_LIST
+import com.example.geoseek.models.Habitat
 import kotlinx.coroutines.delay
 
-private data class HuntEnvironment(val name: String, val blurb: String, val durationSeconds: Int, val targetCount: Int)
+private data class HuntEnvironment(
+    val name: String,
+    val blurb: String,
+    val habitat: Habitat,
+    val durationSeconds: Int,
+    val targetCount: Int,
+)
 
 private val ENVIRONMENTS = listOf(
-    HuntEnvironment("Indoors", "Rooms, desks, and shelves", 90, 3),
-    HuntEnvironment("Park", "Paths, benches, and trees", 120, 4),
-    HuntEnvironment("Streets", "Sidewalks and storefronts", 150, 5),
+    HuntEnvironment("Indoors", "Rooms, desks, and shelves", Habitat.INDOORS, 90, 3),
+    HuntEnvironment("Park", "Paths, benches, and trees", Habitat.PARK, 120, 4),
+    HuntEnvironment("Streets", "Sidewalks and storefronts", Habitat.STREETS, 150, 5),
 )
 
 private enum class HuntPhase { Pick, Countdown, Active, Results }
@@ -83,6 +93,8 @@ fun HuntScreen(
     onHuntFinished: (result: GameScoreResult, found: List<GameObject>) -> Unit,
 ) {
     val accent = Scenes.Hunt.accent
+    val context = LocalContext.current
+    val customModelAvailable = remember { CustomClassifier.isBundled(context) }
     var phase by remember { mutableStateOf(HuntPhase.Pick) }
     var selectedEnv by remember { mutableIntStateOf(1) }
     var round by remember { mutableStateOf<HuntRound?>(null) }
@@ -96,7 +108,7 @@ fun HuntScreen(
     fun startHunt() {
         val env = ENVIRONMENTS[selectedEnv]
         val modeInstance = TimedHuntMode(timeLimitSeconds = env.durationSeconds)
-        val targets = OBJECT_LIST.shuffled().take(env.targetCount.coerceAtMost(OBJECT_LIST.size))
+        val targets = pickHuntTargets(env.habitat, env.targetCount, customModelAvailable)
         round = HuntRound(env.name, targets, env.durationSeconds, modeInstance)
         found.clear()
         score = 0
@@ -157,6 +169,7 @@ fun HuntScreen(
                 HuntPhase.Pick -> EnvironmentPicker(
                     accent = accent,
                     selected = selectedEnv,
+                    customModelAvailable = customModelAvailable,
                     onSelect = { selectedEnv = it },
                     onStart = ::startHunt,
                     onBack = onBack,
@@ -184,6 +197,7 @@ fun HuntScreen(
 private fun EnvironmentPicker(
     accent: Color,
     selected: Int,
+    customModelAvailable: Boolean,
     onSelect: (Int) -> Unit,
     onStart: () -> Unit,
     onBack: () -> Unit,
@@ -226,7 +240,7 @@ private fun EnvironmentPicker(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         PixelSprite(Icons.Hunt, Modifier.size(14.dp), tint = accent)
                         Spacer(Modifier.width(6.dp))
-                        Text("${env.targetCount.coerceAtMost(OBJECT_LIST.size)} targets", style = GeoType.Label, color = GeoColors.Text)
+                        Text("${env.targetCount.coerceAtMost(huntPool(env.habitat, customModelAvailable).size)} targets", style = GeoType.Label, color = GeoColors.Text)
                     }
                 }
             }

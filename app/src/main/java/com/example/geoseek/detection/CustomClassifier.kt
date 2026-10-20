@@ -71,6 +71,10 @@ class CustomClassifier private constructor(
         const val MODEL_ASSET = "custom_model.tflite"
         const val LABELS_ASSET = "custom_labels.txt"
 
+        /** True if the app ships a custom model and its labels, without loading either. */
+        fun isBundled(context: Context): Boolean =
+            context.assets.list("")?.let { MODEL_ASSET in it && LABELS_ASSET in it } ?: false
+
         /** Loads the bundled model, or returns null if the app doesn't ship one (or it can't be read). */
         fun load(context: Context): CustomClassifier? = try {
             val model = context.assets.open(MODEL_ASSET).use { stream ->
