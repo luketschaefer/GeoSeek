@@ -66,6 +66,10 @@ dependencies {
     implementation(libs.camera.mlkit.vision)
     // Bundles the model so recognition works immediately, including offline.
     implementation(libs.mlkit.image.labeling)
+    // Outlines the objects in frame, so the labelers can look at just the one being aimed at.
+    implementation(libs.mlkit.objects)
+    // Runs the optional custom model (docs/custom-model.md). Keeps the org.tensorflow.lite API.
+    implementation(libs.litert)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

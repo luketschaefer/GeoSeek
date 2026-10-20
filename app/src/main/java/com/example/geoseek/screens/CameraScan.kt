@@ -123,17 +123,30 @@ fun CameraScan(
         cameraError != null -> cameraError
         detection.error != null -> detection.error
         targetPool.isEmpty() -> "Nothing left to find here"
+        detection.recognizedObject != null -> "Identified!"
+        detection.progress > 0f -> "Hold steady…"
         else -> detection.visibleLabel?.let { "Camera sees: $it" } ?: "Scanning…"
     }
 
     Viewfinder(accent, modifier, label = label, status = status, transparent = hasPermission) {
         if (hasPermission && targetPool.isNotEmpty()) {
+            val cameraModifier = Modifier.fillMaxSize().padding(4.dp).clip(PixelShape(4.dp))
             CameraPreview(
                 targetPool = targetPool,
                 scanId = scanId,
-                modifier = Modifier.fillMaxSize().padding(4.dp).clip(PixelShape(4.dp)),
+                modifier = cameraModifier,
                 onResult = { detection = it },
             ) { cameraError = it }
+            if (cameraError == null && detection.error == null) {
+                Box(Modifier.fillMaxSize()) {
+                    DetectionOverlay(detection, accent, cameraModifier)
+                    if (detection.visibleLock != null && detection.confidence > 0f) {
+                        Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 52.dp)) {
+                            ConfidenceReadout(detection.confidence, accent, done = detection.recognizedObject != null)
+                        }
+                    }
+                }
+            }
         }
         if (!hasPermission) {
             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -215,7 +228,7 @@ fun Viewfinder(
 
 /**
  * CameraX preview bound to an [ObjectDetector] for [targetPool]. Recreated whenever [scanId] or the pool
- * changes, which resets the detector's frame streak.
+ * changes, which resets the detector's hold.
  */
 @Composable
 private fun CameraPreview(
@@ -235,6 +248,8 @@ private fun CameraPreview(
             cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
             imageAnalysisBackpressureStrategy = ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
+            // The detector crops frames as bitmaps; RGBA makes that conversion cheap.
+            imageAnalysisOutputImageFormat = ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
         }
     }
 
@@ -251,7 +266,7 @@ private fun CameraPreview(
     )
 
     DisposableEffect(controller, lifecycleOwner) {
-        val detector = ObjectDetector(target = null, targetPool = targetPool)
+        val detector = ObjectDetector(context, targetPool = targetPool)
         val executor = ContextCompat.getMainExecutor(context)
         var disposed = false
         var finished = false
@@ -274,7 +289,7 @@ private fun CameraPreview(
                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                             currentOnError("Camera permission removed. Enable it in app settings.")
                         } else {
-                            controller.setImageAnalysisAnalyzer(executor, analyzer)
+                            controller.setImageAnalysisAnalyzer(detector.analysisExecutor, analyzer)
                             controller.bindToLifecycle(lifecycleOwner)
                         }
                     } catch (_: Exception) {

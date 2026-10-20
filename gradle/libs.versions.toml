@@ -5,6 +5,8 @@ activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 camerax = "1.6.2"
 mlkitImageLabeling = "17.0.9"
+mlkitObjectDetection = "17.0.2"
+litert = "1.4.2"
 coreKtx = "1.19.1"
 lifecycle = "2.11.0"
 
@@ -22,6 +24,8 @@ camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = 
 camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
 camera-mlkit-vision = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camerax" }
 mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "mlkitImageLabeling" }
+mlkit-objects = { module = "com.google.mlkit:object-detection", version.ref = "mlkitObjectDetection" }
+litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
 junit = { module = "junit:junit", version = "4.13.2" }
 robolectric = { module = "org.robolectric:robolectric", version = "4.17" }
 

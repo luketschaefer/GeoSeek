@@ -27,7 +27,7 @@ class TemporalFrameFilter(
     private val maxGapMillis: Long = 1_500L,
 ) {
     private var currentStreak = 0
-    private var lastMatchTime = 0L
+    private var lastMatchTime: Long? = null
     private var confidenceSum = 0f
 
     /**
@@ -48,8 +48,9 @@ class TemporalFrameFilter(
             return FilterResult(isConfirmed = false, streakCount = 0, averageConfidence = 0f)
         }
 
-        val gap = currentTimeMillis - lastMatchTime
-        if ((lastMatchTime > 0L) && (gap > maxGapMillis)) {
+        // Null means no match yet; 0 is a real timestamp, not an "unset" sentinel.
+        val previous = lastMatchTime
+        if ((previous != null) && (currentTimeMillis - previous > maxGapMillis)) {
             currentStreak = 1
             confidenceSum = confidence
         } else {
@@ -75,7 +76,7 @@ class TemporalFrameFilter(
      */
     fun reset() {
         currentStreak = 0
-        lastMatchTime = 0L
+        lastMatchTime = null
         confidenceSum = 0f
     }
 }

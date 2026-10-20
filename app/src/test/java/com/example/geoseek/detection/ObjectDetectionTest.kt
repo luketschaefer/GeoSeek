@@ -75,48 +75,154 @@ class ObjectDetectionTest {
         assertEquals("Armchair", visible)
     }
 
-    @Test
-    fun testTemporalFrameFilterRequiresThreeConsecutiveStreakFrames() {
-        // Frame 1: Match 1
-        var result = frameFilter.processFrame(isMatch = true, confidence = 0.80f, currentTimeMillis = 1000L)
-        assertFalse(result.isConfirmed)
-        assertEquals(1, result.streakCount)
+    private val cup = GameObject("Cup", Rarity.COMMON, 10)
+    private val bottle = GameObject("Bottle", Rarity.COMMON, 10)
+    private val mug = TrackedBox(trackingId = 1, box = Box(100f, 100f, 200f, 200f))
 
-        // Frame 2: Match 2
-        result = frameFilter.processFrame(isMatch = true, confidence = 0.82f, currentTimeMillis = 1200L)
-        assertFalse(result.isConfirmed)
-        assertEquals(2, result.streakCount)
-
-        // Frame 3: Match 3 -> Confirmed!
-        result = frameFilter.processFrame(isMatch = true, confidence = 0.84f, currentTimeMillis = 1400L)
-        assertTrue(result.isConfirmed)
-        assertEquals(3, result.streakCount)
-        assertEquals(0.82f, result.averageConfidence, 0.01f)
+    /** Feeds [frames] frames 100 ms apart starting at [start] and returns the last state. */
+    private fun HoldTracker.feed(frames: Int, seen: TrackedBox?, match: LabelMatch?, start: Long = 1_000L): HoldState {
+        var state = HoldState()
+        repeat(frames) { state = update(seen, listOfNotNull(match), start + it * 100L) }
+        return state
     }
 
     @Test
-    fun testTemporalFrameFilterResetsOnMissedFrame() {
-        frameFilter.processFrame(isMatch = true, confidence = 0.80f, currentTimeMillis = 1000L)
-        frameFilter.processFrame(isMatch = true, confidence = 0.82f, currentTimeMillis = 1200L)
+    fun testHoldConfirmsOnlyAfterHoldingForTwoSeconds() {
+        val tracker = HoldTracker(holdMillis = 2_000L)
+        val match = LabelMatch(cup, "Mug", 0.85f)
 
-        // Missed frame resets streak
-        val (isConfirmed, streakCount, _) = frameFilter.processFrame(
-            isMatch = false,
-            confidence = 0f,
-            currentTimeMillis = 1400L,
+        val early = tracker.feed(15, mug, match)
+        assertFalse(early.confirmed)
+        assertEquals(0.7f, early.progress, 0.01f)
+        assertEquals(0.85f, early.confidence, 0.01f)
+
+        val done = tracker.feed(6, mug, match, start = 2_500L)
+        assertTrue(done.confirmed)
+        assertEquals("Cup", done.candidate?.name)
+    }
+
+    @Test
+    fun testHoldPausesWhileConfidenceIsLow() {
+        val tracker = HoldTracker(holdMillis = 2_000L, minConfidence = 0.60f)
+        val state = tracker.feed(30, mug, LabelMatch(cup, "Mug", 0.55f))
+        assertFalse(state.confirmed)
+        assertEquals(0f, state.progress, 0.001f)
+        assertEquals(0.55f, state.confidence, 0.01f)
+    }
+
+    @Test
+    fun testHoldSticksWithCandidateThenHandsOverWhenItFades() {
+        val tracker = HoldTracker(holdMillis = 2_000L)
+        val cupReading = LabelMatch(cup, "Mug", 0.85f)
+        val bottleReading = LabelMatch(bottle, "Bottle", 0.9f)
+        tracker.feed(10, mug, cupReading)
+
+        // A second label in the same reading doesn't steal the hold while the candidate is still there.
+        val both = tracker.update(mug, listOf(bottleReading, cupReading), 2_000L)
+        assertEquals("Cup", both.candidate?.name)
+        assertTrue(both.progress > 0.4f)
+
+        // Readings without the candidate pause the hold and fade it out, then the new object starts from zero.
+        val missed = tracker.update(mug, listOf(bottleReading), 2_100L)
+        assertEquals("Cup", missed.candidate?.name)
+        assertEquals(both.progress, missed.progress, 0.001f)
+        var state = missed
+        var t = 2_200L
+        while (state.candidate?.name == "Cup") {
+            state = tracker.update(mug, listOf(bottleReading), t)
+            t += 100L
+        }
+        assertNull(state.candidate)
+        state = tracker.update(mug, listOf(bottleReading), t)
+        assertEquals("Bottle", state.candidate?.name)
+        assertTrue(state.progress <= 0.05f)
+    }
+
+    @Test
+    fun testFramesWithoutLabelReadingKeepTheHoldGoing() {
+        val tracker = HoldTracker(holdMillis = 2_000L)
+        tracker.update(mug, listOf(LabelMatch(cup, "Mug", 0.85f)), 1_000L)
+        var state = HoldState()
+        for (i in 1..20) state = tracker.update(mug, emptyList(), 1_000L + i * 100L, labeled = false)
+        assertTrue(state.confirmed)
+        assertEquals(0.85f, state.confidence, 0.001f)
+    }
+
+    @Test
+    fun testUprightBoxMapsBackToBuffer() {
+        // A 640x480 buffer rotated 90 degrees is a 480x640 upright image.
+        val upright = Box(10f, 20f, 110f, 220f)
+        assertEquals(Box(20f, 370f, 220f, 470f), upright.uprightToBuffer(90, 640, 480))
+        assertEquals(Box(530f, 260f, 630f, 460f), upright.uprightToBuffer(180, 640, 480))
+        assertEquals(Box(420f, 10f, 620f, 110f), upright.uprightToBuffer(270, 640, 480))
+        assertEquals(upright, upright.uprightToBuffer(0, 640, 480))
+    }
+
+    @Test
+    fun testAliasesMatchWholeWordsOnly() {
+        assertTrue(matcher.findMatches(listOf(RawLabel("Cupboard", 0.9f), RawLabel("Street", 0.9f))).isEmpty())
+        assertTrue(matcher.findMatches(listOf(RawLabel("Desktop computer", 0.9f), RawLabel("Vehicle", 0.9f))).isEmpty())
+        assertEquals("Cup", matcher.findMatches(listOf(RawLabel("Coffee cup", 0.9f))).single().gameObject.name)
+        // Two labels for the same object collapse into its best one.
+        val merged = matcher.findMatches(listOf(RawLabel("Mug", 0.7f), RawLabel("Cup", 0.8f)))
+        assertEquals(1, merged.size)
+        assertEquals(0.8f, merged.single().confidence, 0.001f)
+    }
+
+    @Test
+    fun testHoldSurvivesBriefDropoutButResetsWhenLost() {
+        val tracker = HoldTracker(holdMillis = 2_000L, lostGraceMillis = 500L)
+        val match = LabelMatch(cup, "Mug", 0.85f)
+        tracker.feed(10, mug, match)
+
+        val blip = tracker.update(null, emptyList(), 2_000L)
+        assertEquals(mug, blip.lock)
+        assertTrue(blip.progress > 0f)
+
+        val lost = tracker.update(null, emptyList(), 2_600L)
+        assertNull(lost.lock)
+        assertEquals(0f, lost.progress, 0.001f)
+    }
+
+    @Test
+    fun testHoldRestartsOnDifferentObject() {
+        val tracker = HoldTracker(holdMillis = 2_000L)
+        val match = LabelMatch(cup, "Mug", 0.85f)
+        tracker.feed(10, mug, match)
+        val other = TrackedBox(trackingId = 2, box = Box(300f, 300f, 400f, 400f))
+        val state = tracker.update(other, listOf(match), 2_000L)
+        assertEquals(other, state.lock)
+        assertTrue(state.progress < 0.1f)
+    }
+
+    @Test
+    fun testChooseLockPrefersObjectUnderCenter() {
+        val big = TrackedBox(1, Box(0f, 0f, 400f, 400f))
+        val small = TrackedBox(2, Box(150f, 150f, 250f, 250f))
+        val far = TrackedBox(3, Box(350f, 0f, 400f, 50f))
+        assertEquals(small, chooseLock(listOf(big, small, far), 200f, 200f, previous = null))
+        // An existing lock that still covers the center is kept, so the outline doesn't flip between objects.
+        assertEquals(big, chooseLock(listOf(big, small, far), 200f, 200f, previous = big))
+        assertEquals(far, chooseLock(listOf(far), 200f, 200f, previous = null))
+        assertNull(chooseLock(emptyList(), 200f, 200f, previous = null))
+    }
+
+    @Test
+    fun testAirPodsMatchWithOrWithoutCase() {
+        for (label in listOf("AirPods", "AirPods case", "Earbuds")) {
+            assertEquals(label, "AirPods", matcher.findMatches(listOf(RawLabel(label, 0.9f))).single().gameObject.name)
+        }
+        // The custom model's catch-all class must never count as a find.
+        assertTrue(matcher.findMatches(listOf(RawLabel("Background", 0.99f))).isEmpty())
+    }
+
+    @Test
+    fun testCustomLabelsParseTeachableMachineFormat() {
+        assertEquals(
+            listOf("AirPods", "AirPods case", "Background"),
+            CustomClassifier.parseLabels("0 AirPods\n1 AirPods case\n\n2 Background\n"),
         )
-        assertFalse(isConfirmed)
-        assertEquals(0, streakCount)
-    }
-
-    @Test
-    fun testTemporalFrameFilterResetsOnTimeGap() {
-        frameFilter.processFrame(isMatch = true, confidence = 0.80f, currentTimeMillis = 1000L)
-
-        // Gap of 2000ms (> 1500ms limit) resets streak back to 1
-        val result = frameFilter.processFrame(isMatch = true, confidence = 0.80f, currentTimeMillis = 3000L)
-        assertFalse(result.isConfirmed)
-        assertEquals(1, result.streakCount)
+        assertEquals(listOf("AirPods"), CustomClassifier.parseLabels("AirPods"))
     }
 
     /** Checks inclusive confidence threshold behavior at the exact boundary. */

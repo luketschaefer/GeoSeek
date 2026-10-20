@@ -24,6 +24,8 @@ val OBJECT_LIST = listOf(
     // Electronics & Workspace
     GameObject("Laptop", Rarity.UNCOMMON, 30),
     GameObject("Mobile Phone", Rarity.COMMON, 15),
+    // Our detection benchmark: needs the custom model (see docs/custom-model.md), with or without the case.
+    GameObject("AirPods", Rarity.LEGENDARY, 100),
     GameObject("Television", Rarity.RARE, 40),
     GameObject("Keyboard", Rarity.UNCOMMON, 25),
     GameObject("Mouse", Rarity.UNCOMMON, 20),

@@ -37,8 +37,10 @@ class ObjectLabelMatcher(
         "Plant" to listOf("plant", "houseplant", "potted plant", "flora", "botany", "succulent", "fern", "leaf", "flowerpot", "planter", "vase", "flower", "blossom", "petal", "greenery", "vegetation"),
         "Flower" to listOf("flower", "blossom", "rose", "tulip", "petal", "bouquet", "flowerpot", "plant", "potted plant", "houseplant", "flora"),
         "Tree" to listOf("tree", "woody plant", "shrub", "trunk", "conifer", "evergreen", "palm", "branch"),
-        "Laptop" to listOf("laptop", "notebook computer", "laptop computer", "computer", "computer monitor", "personal computer", "netbook", "screen", "display", "macbook"),
-        "Mobile Phone" to listOf("mobile phone", "cellphone", "cellular telephone", "smartphone", "telephone", "phone", "iphone", "android", "device", "handset"),
+        "Laptop" to listOf("laptop", "notebook computer", "laptop computer", "computer monitor", "netbook", "screen", "display", "macbook"),
+        "Mobile Phone" to listOf("mobile phone", "cellphone", "cellular telephone", "smartphone", "telephone", "phone", "iphone", "android", "handset"),
+        // Only the custom model emits these (docs/custom-model.md); its "Background" class deliberately matches nothing.
+        "AirPods" to listOf("airpods", "airpod", "airpods case", "earbuds", "earbud"),
         "Television" to listOf("television", "tv", "flat panel display", "television set", "media player", "screen", "monitor"),
         "Keyboard" to listOf("keyboard", "computer keyboard", "typewriter", "keypad"),
         "Mouse" to listOf("mouse", "computer mouse", "trackpad"),
@@ -49,7 +51,7 @@ class ObjectLabelMatcher(
         "Shoe" to listOf("shoe", "footwear", "sneakers", "boot", "athletic shoe", "sandal", "slipper"),
         "Clock" to listOf("clock", "wall clock", "alarm clock", "watch", "timepiece"),
         "Bicycle" to listOf("bicycle", "bike", "cycle", "mountain bike", "road bike"),
-        "Car" to listOf("car", "automobile", "vehicle", "sedan", "motor vehicle", "suv", "truck"),
+        "Car" to listOf("car", "automobile", "sedan", "motor vehicle", "suv", "truck"),
         "Dog" to listOf("dog", "canine", "puppy", "hound", "pooch"),
         "Cat" to listOf("cat", "feline", "kitten"),
     )
@@ -72,21 +74,15 @@ class ObjectLabelMatcher(
         val aliases = aliasMap[target.name] ?: listOf(target.name.lowercase())
         val bestLabelMatch = labels
             .filter { it.confidence >= threshold }
-            .firstOrNull { raw -> aliases.any { alias -> matchesAlias(raw.text, alias) } }
-
-        if (bestLabelMatch != null) {
-            return LabelMatch(target, bestLabelMatch.text, bestLabelMatch.confidence)
-        }
-
-        // Fallback to general matches
-        val matches = findMatches(labels, threshold)
-        return matches.firstOrNull { (gameObject, _, _) ->
-            gameObject.name.equals(target.name, ignoreCase = true)
-        }
+            .filter { raw -> aliases.any { alias -> matchesAlias(raw.text, alias) } }
+            .maxByOrNull { it.confidence }
+            ?: return null
+        return LabelMatch(target, bestLabelMatch.text, bestLabelMatch.confidence)
     }
 
     /**
      * Evaluates raw frame labels against the alias catalog and returns all matching targets sorted by confidence.
+     * Several labels for the same object collapse into that object's best one.
      *
      * @param labels List of raw [RawLabel]s produced by the vision analyzer.
      * @param threshold Minimum required confidence score.
@@ -102,6 +98,8 @@ class ObjectLabelMatcher(
                 val matchedTarget = matchLabelToTarget(label.text)
                 matchedTarget?.let { LabelMatch(it, label.text, label.confidence) }
             }
+            .groupBy { it.gameObject.name }
+            .map { (_, sameObject) -> sameObject.maxBy { it.confidence } }
             .sortedByDescending { it.confidence }
     }
 
@@ -112,36 +110,29 @@ class ObjectLabelMatcher(
      * @return Corresponding [GameObject] if recognized, or null if unmapped.
      */
     private fun matchLabelToTarget(labelText: String): GameObject? {
-        val normalized = labelText.trim().lowercase()
         for ((targetName, aliases) in aliasMap) {
-            if (aliases.any { matchesAlias(normalized, it) }) {
-                return GameObject(
-                    name = targetName,
-                    rarity = getRarityForTarget(targetName),
-                    points = getPointsForTarget(targetName),
-                )
+            if (aliases.any { matchesAlias(labelText, it) }) {
+                return OBJECT_LIST.firstOrNull { it.name.equals(targetName, ignoreCase = true) }
+                    ?: GameObject(name = targetName, rarity = getRarityForTarget(targetName), points = getPointsForTarget(targetName))
             }
         }
         return null
     }
 
     /**
-     * Checks whether a normalized label string matches a given alias using word-aware comparison.
+     * Checks whether a label contains an alias as whole words, so "Coffee cup" matches "cup" but "Cupboard" doesn't.
      */
-    private fun matchesAlias(normalizedLabel: String, alias: String): Boolean {
-        val norm = normalizedLabel.trim().lowercase()
-        val a = alias.trim().lowercase()
-        if (norm == a) return true
-
-        val labelWords = norm.split(" ", "_", "-", "/")
-        val aliasWords = a.split(" ", "_", "-", "/")
-
-        if (labelWords.contains(a) || aliasWords.contains(norm)) return true
-        if (norm.contains(a) && a.length >= 4) return true
-        if (a.contains(norm) && norm.length >= 4) return true
-
-        return false
+    private fun matchesAlias(label: String, alias: String): Boolean {
+        val labelWords = words(label)
+        val aliasWords = words(alias)
+        if (labelWords.isEmpty() || aliasWords.isEmpty() || aliasWords.size > labelWords.size) return false
+        return (0..labelWords.size - aliasWords.size).any { start ->
+            aliasWords.indices.all { labelWords[start + it] == aliasWords[it] }
+        }
     }
+
+    private fun words(text: String): List<String> =
+        text.lowercase().split(Regex("[^a-z0-9]+")).filter { it.isNotEmpty() }
 
     /**
      * Queries the catalog for the rarity tier of a target name.
