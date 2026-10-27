@@ -27,18 +27,9 @@ import androidx.compose.ui.unit.sp
 import com.example.geoseek.data.Player
 import com.example.geoseek.data.levelInfo
 import com.example.geoseek.data.today
+import com.example.geoseek.engine.questForDay
+import com.example.geoseek.models.OBJECT_LIST
 import java.util.Calendar
-
-data class DailyQuest(val title: String, val detail: String, val goal: Int, val rewardXp: Int)
-
-private val DAILY_QUESTS = listOf(
-    DailyQuest("Morning Forager", "Find 3 objects today", 3, 50),
-    DailyQuest("Keen Eye", "Find 5 objects today", 5, 80),
-    DailyQuest("Wanderer", "Find 4 objects today", 4, 65),
-    DailyQuest("Quick Look", "Find 2 objects today", 2, 35),
-)
-
-fun todaysQuest(): DailyQuest = DAILY_QUESTS[today() % DAILY_QUESTS.size]
 
 @Composable
 fun HomeScreen(player: Player, onOpen: (Destination) -> Unit, onClaimQuest: (Int) -> Unit) {
@@ -61,7 +52,7 @@ fun HomeScreen(player: Player, onOpen: (Destination) -> Unit, onClaimQuest: (Int
         Column(Modifier.width(IntrinsicSize.Max), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             MenuItem("Hunt", { onOpen(Destination.Hunt) }, Modifier.fillMaxWidth().entrance(1), Icons.Hunt, Scenes.Hunt.accent, "Timed Hunt: Race the clock for targets")
             MenuItem("Free Look", { onOpen(Destination.Explore) }, Modifier.fillMaxWidth().entrance(2), Icons.Explore, Scenes.Explore.accent, "Collection Mode: Discover new cards")
-            MenuItem("Collection", { onOpen(Destination.Collection) }, Modifier.fillMaxWidth().entrance(3), Icons.Cards, Scenes.Collection.accent, "${player.cards.size} / ${com.example.geoseek.models.OBJECT_LIST.size} cards collected")
+            MenuItem("Collection", { onOpen(Destination.Collection) }, Modifier.fillMaxWidth().entrance(3), Icons.Cards, Scenes.Collection.accent, "${player.cards.size} / ${OBJECT_LIST.size} cards collected")
             MenuItem("Versus", { onOpen(Destination.Versus) }, Modifier.fillMaxWidth().entrance(4), Icons.Versus, GeoColors.Danger, "Battle with the cards you have found")
             MenuItem("Profile", { onOpen(Destination.Profile) }, Modifier.fillMaxWidth().entrance(4), Icons.Profile, Scenes.Profile.accent, "Level ${player.levelInfo.level} Explorer • ${player.xp} XP")
         }
@@ -93,8 +84,9 @@ private fun PlayerBadge(player: Player, modifier: Modifier = Modifier) {
 
 @Composable
 private fun QuestPanel(player: Player, onClaim: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val quest = todaysQuest()
-    val done = player.findsToday >= quest.goal
+    val quest = questForDay(today(), binderComplete = OBJECT_LIST.all { it.name in player.cards })
+    val progress = quest.progress(player.daily)
+    val done = quest.isDone(player.daily)
     Panel(modifier) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -108,9 +100,9 @@ private fun QuestPanel(player: Player, onClaim: (Int) -> Unit, modifier: Modifie
             OutlinedText(quest.title, GeoType.Title, outlineWidth = 2.5.dp)
             Text(quest.detail, style = GeoType.Body, color = GeoColors.TextSoft)
             Spacer(Modifier.height(12.dp))
-            PixelBar(player.findsToday / quest.goal.toFloat(), GeoColors.Gold, Modifier.fillMaxWidth(), segments = quest.goal * 4)
+            PixelBar(progress / quest.goal.toFloat(), GeoColors.Gold, Modifier.fillMaxWidth(), segments = quest.goal * 4)
             Spacer(Modifier.height(6.dp))
-            Text("${player.findsToday.coerceAtMost(quest.goal)} / ${quest.goal} found", style = GeoType.Caption, color = GeoColors.TextSoft)
+            Text("$progress / ${quest.goal} ${quest.goalType.unit}", style = GeoType.Caption, color = GeoColors.TextSoft)
             when {
                 player.questClaimedToday -> {
                     Spacer(Modifier.height(12.dp))
