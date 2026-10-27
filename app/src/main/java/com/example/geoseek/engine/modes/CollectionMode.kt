@@ -52,17 +52,8 @@ class CollectionMode(
 
         state.foundObjects.add(foundObject)
 
-        val rarityMultiplier = when (foundObject.rarity) {
-            Rarity.COMMON -> 1.0f
-            Rarity.UNCOMMON -> 1.5f
-            Rarity.RARE -> 2.5f
-            Rarity.EPIC -> 4.0f
-            Rarity.LEGENDARY -> 8.0f
-        }
-
-        val basePoints = foundObject.points
-        val discoveryBonus = if (isNewDiscovery) 50 else 10
-        val xpEarned = ((basePoints * rarityMultiplier) + discoveryBonus).toInt()
+        val rarityMultiplier = rarityMultiplier(foundObject.rarity)
+        val xpEarned = discoveryXp(foundObject, isNewDiscovery)
 
         state.score += xpEarned
 
@@ -122,5 +113,20 @@ class CollectionMode(
             totalXpEarned = totalXp + completionBonus,
             cardsCollected = cards,
         )
+    }
+
+    /** The XP formula, shared with screens that show what a find is worth before it happens. */
+    companion object {
+        fun rarityMultiplier(rarity: Rarity): Float = when (rarity) {
+            Rarity.COMMON -> 1.0f
+            Rarity.UNCOMMON -> 1.5f
+            Rarity.RARE -> 2.5f
+            Rarity.EPIC -> 4.0f
+            Rarity.LEGENDARY -> 8.0f
+        }
+
+        /** XP for finding [obj]: its points scaled by rarity, plus a bonus that's bigger for a new card. */
+        fun discoveryXp(obj: GameObject, isNewDiscovery: Boolean = true): Int =
+            ((obj.points * rarityMultiplier(obj.rarity)) + if (isNewDiscovery) 50 else 10).toInt()
     }
 }

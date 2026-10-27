@@ -175,7 +175,8 @@ fun HuntScreen(
                     onStart = ::startHunt,
                     onBack = onBack,
                 )
-                HuntPhase.Countdown -> Countdown { phase = HuntPhase.Active }
+                // The countdown keeps running while it animates out, so backing out at "GO!" mustn't start the hunt.
+                HuntPhase.Countdown -> Countdown { if (phase == HuntPhase.Countdown) phase = HuntPhase.Active }
                 HuntPhase.Active -> round?.let { r ->
                     ActiveHunt(r, found, score, secondsLeft, accent, lastOutcome, onFind = ::find, onEnd = ::finish)
                 }

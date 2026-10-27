@@ -18,6 +18,12 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
     private val prefs get() = store.prefs
     private fun key(username: String, field: String) = store.key(username, field)
 
+    /**
+     * [player] as currently stored. Screens can hold a copy that's out of date (loaded before another save, or
+     * before midnight rolled the daily progress over), and building on it would overwrite newer progress.
+     */
+    private fun fresh(player: Player): Player = store.load(player.username) ?: player
+
     /** Counts [found] toward today's finds, rare finds, and new cards for the daily quest. */
     private fun SharedPreferences.Editor.addDailyFinds(player: Player, found: List<GameObject>) = apply {
         val name = player.username
@@ -42,7 +48,8 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
      * Records a finished hunt: the score counts toward the best score, the XP is banked,
      * every found object adds a card (or a duplicate) to the collection, and each find counts toward the daily quest.
      */
-    fun recordHunt(player: Player, score: Int, xpEarned: Int, found: List<GameObject>): Player {
+    fun recordHunt(stale: Player, score: Int, xpEarned: Int, found: List<GameObject>): Player {
+        val player = fresh(stale)
         val name = player.username
         prefs.edit()
             .putInt(key(name, "hunts"), player.huntsPlayed + 1)
@@ -56,7 +63,8 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
     }
 
     /** Adds a card. Optional [xpEarned] parameter allows custom game modes (e.g. CollectionMode) to award dynamic XP. */
-    fun collect(player: Player, obj: GameObject, xpEarned: Int? = null): Player {
+    fun collect(stale: Player, obj: GameObject, xpEarned: Int? = null): Player {
+        val player = fresh(stale)
         val name = player.username
         val isNew = obj.name !in player.cards
         val addedXp = xpEarned ?: if (isNew) obj.points else 0
@@ -68,7 +76,8 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
         return store.load(name) ?: player
     }
 
-    fun claimQuest(player: Player, rewardXp: Int): Player {
+    fun claimQuest(stale: Player, rewardXp: Int): Player {
+        val player = fresh(stale)
         if (player.questClaimedToday) return player
         val name = player.username
         prefs.edit()

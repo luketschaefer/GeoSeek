@@ -112,4 +112,17 @@ class ProgressStoreTest {
         val afterHunt = progress.recordHunt(afterCollect, score = 0, xpEarned = 0, found = listOf(chair, dog, clock))
         assertEquals(DailyProgress(finds = 4, rareFinds = 2, newCards = 3, hunts = 1), afterHunt.daily)
     }
+
+    @Test
+    fun saves_buildOnStoredProgressEvenFromAStaleCopy() {
+        progress.collect(player, chair)
+        // `player` predates the collect; saving from it must not wipe the chair or its XP.
+        val after = progress.recordHunt(player, score = 0, xpEarned = 5, found = listOf(dog))
+        assertEquals(setOf("Chair", "Dog"), after.cards)
+        assertEquals(15, after.xp)
+        assertEquals(2, after.findsToday)
+        // The stale copy doesn't know the quest was claimed, but the store does.
+        progress.claimQuest(player, 50)
+        assertEquals(65, progress.claimQuest(player, 50).xp)
+    }
 }

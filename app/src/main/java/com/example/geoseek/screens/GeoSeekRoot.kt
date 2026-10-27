@@ -29,8 +29,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,6 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.geoseek.data.AuthStore
 import com.example.geoseek.data.Player
 import com.example.geoseek.data.levelInfo
@@ -83,6 +88,21 @@ fun GeoSeekRoot() {
         }
         player = updated
     }
+
+    // Reload the player when coming back to the app or the menu, so daily progress and the quest roll over
+    // at midnight instead of carrying yesterday's over until the next sign-in.
+    fun refreshPlayer() {
+        if (player != null) player = store.currentPlayer() ?: player
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refreshPlayer()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(destination) { if (destination == Destination.Home) refreshPlayer() }
 
     // Draw behind the system bars with light icons, whatever the window theme says.
     LaunchedEffect(activity) {
@@ -150,7 +170,7 @@ fun GeoSeekRoot() {
 @Composable
 private fun Splash(player: Player?, onFinished: () -> Unit) {
     var started by remember { mutableStateOf(value = false) }
-    var dots by remember { mutableStateOf(0) }
+    var dots by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         started = true
         repeat(6) {

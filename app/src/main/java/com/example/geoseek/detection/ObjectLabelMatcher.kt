@@ -84,6 +84,9 @@ class ObjectLabelMatcher(
      * Evaluates raw frame labels against the alias catalog and returns all matching targets sorted by confidence.
      * Several labels for the same object collapse into that object's best one.
      *
+     * A label shared by several objects (ML Kit's "Flower" is an alias of both Flower and Plant) matches all of
+     * them, so a pool without one still finds the other. Ties rank the object the label names exactly first.
+     *
      * @param labels List of raw [RawLabel]s produced by the vision analyzer.
      * @param threshold Minimum required confidence score.
      * @return List of valid [LabelMatch]es ordered highest-confidence first.
@@ -92,31 +95,40 @@ class ObjectLabelMatcher(
         labels: List<RawLabel>,
         threshold: Float = defaultConfidenceThreshold,
     ): List<LabelMatch> {
+        val catalogOrder = aliasMap.keys.toList()
         return labels
             .filter { it.confidence >= threshold }
-            .mapNotNull { label ->
-                val matchedTarget = matchLabelToTarget(label.text)
-                matchedTarget?.let { LabelMatch(it, label.text, label.confidence) }
+            .flatMap { label ->
+                matchLabelToTargets(label.text).map { LabelMatch(it, label.text, label.confidence) }
             }
             .groupBy { it.gameObject.name }
             .map { (_, sameObject) -> sameObject.maxBy { it.confidence } }
-            .sortedByDescending { it.confidence }
+            .sortedWith(
+                compareByDescending<LabelMatch> { it.confidence }
+                    .thenByDescending { words(it.matchedLabel) == words(it.gameObject.name) }
+                    .thenBy { catalogOrder.indexOf(it.gameObject.name) },
+            )
     }
 
     /**
-     * Resolves a single label string against the alias map to find its corresponding [GameObject].
+     * Resolves a single label string against the alias map to every [GameObject] it could mean. When one object's
+     * alias covers more of the label than another's ("Glass bottle" is a bottle, not a glass), only the more
+     * specific objects are kept.
      *
      * @param labelText Raw string from ML Kit labeler.
-     * @return Corresponding [GameObject] if recognized, or null if unmapped.
+     * @return Corresponding [GameObject]s, or empty if unmapped.
      */
-    private fun matchLabelToTarget(labelText: String): GameObject? {
-        for ((targetName, aliases) in aliasMap) {
-            if (aliases.any { matchesAlias(labelText, it) }) {
-                return OBJECT_LIST.firstOrNull { it.name.equals(targetName, ignoreCase = true) }
-                    ?: GameObject(name = targetName, rarity = getRarityForTarget(targetName), points = getPointsForTarget(targetName))
-            }
+    private fun matchLabelToTargets(labelText: String): List<GameObject> {
+        val bySpecificity = aliasMap.mapNotNull { (targetName, aliases) ->
+            aliases.filter { matchesAlias(labelText, it) }
+                .maxOfOrNull { words(it).size }
+                ?.let { targetName to it }
         }
-        return null
+        val best = bySpecificity.maxOfOrNull { it.second } ?: return emptyList()
+        return bySpecificity.filter { it.second == best }.map { (targetName, _) ->
+            OBJECT_LIST.firstOrNull { it.name.equals(targetName, ignoreCase = true) }
+                ?: GameObject(name = targetName, rarity = getRarityForTarget(targetName), points = getPointsForTarget(targetName))
+        }
     }
 
     /**

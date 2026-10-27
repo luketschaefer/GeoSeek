@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.geoseek.data.CardRecord
 import com.example.geoseek.data.Player
+import com.example.geoseek.engine.modes.CollectionMode
 import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.OBJECT_LIST
 import com.example.geoseek.models.Rarity
@@ -280,7 +281,7 @@ fun CardInspector(obj: GameObject?, discovered: Boolean, onClose: () -> Unit, he
                 )
                 Spacer(Modifier.height(20.dp))
                 OutlinedText(
-                    if (discovered) "Worth ${card.points} XP the first time it's found" else "Not found yet. Look for one in Free Look or a Hunt.",
+                    if (discovered) "Worth ${CollectionMode.discoveryXp(card)} XP when first found in Free Look" else "Not found yet. Look for one in Free Look or a Hunt.",
                     GeoType.Body, color = GeoColors.TextSoft, outlineWidth = 2.dp, textAlign = TextAlign.Center,
                 )
                 if (discovered && record != null) {

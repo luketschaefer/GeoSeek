@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.geoseek.data.Player
 import com.example.geoseek.engine.GameSessionState
+import com.example.geoseek.engine.ObjectFindResult
 import com.example.geoseek.engine.modes.CollectionMode
 import com.example.geoseek.models.Card
 import com.example.geoseek.models.GameObject
@@ -62,6 +63,8 @@ fun ExploreScreen(player: Player, onBack: () -> Unit, onCollect: (GameObject, In
             return
         }
         val outcome = collectionMode.evaluateFoundObject(obj, sessionState)
+        // A second report of the same find (camera and tap in one frame, before the binder updates) isn't a new card.
+        if (outcome.result != ObjectFindResult.ACCEPTED) return
         val xpEarned = outcome.pointsEarned
         lastXpEarned = xpEarned
         onCollect(obj, xpEarned)
@@ -139,7 +142,7 @@ private fun DiscoverableRow(obj: GameObject, owned: Boolean, modifier: Modifier 
         if (owned) {
             PixelSprite(Icons.Check, Modifier.size(20.dp), tint = GeoColors.Success)
         } else {
-            Text("+${obj.points} XP", style = GeoType.Label, color = GeoColors.Gold)
+            Text("+${CollectionMode.discoveryXp(obj)} XP", style = GeoType.Label, color = GeoColors.Gold)
         }
     }
 }

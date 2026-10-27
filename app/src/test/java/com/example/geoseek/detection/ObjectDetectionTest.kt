@@ -170,6 +170,19 @@ class ObjectDetectionTest {
     }
 
     @Test
+    fun testSharedLabelsMatchEveryObjectTheyCouldMean() {
+        // "Flower" is an alias of Plant too; a hunt for Flower alone must still accept it, ranked first.
+        val flower = matcher.findMatches(listOf(RawLabel("Flower", 0.9f)))
+        assertEquals(listOf("Flower", "Plant"), flower.map { it.gameObject.name })
+        assertEquals(listOf("Plant", "Flower"), matcher.findMatches(listOf(RawLabel("Plant", 0.9f))).map { it.gameObject.name })
+        // A more specific alias wins outright: a glass bottle is a bottle, not a cup.
+        assertEquals("Bottle", matcher.findMatches(listOf(RawLabel("Glass bottle", 0.9f))).single().gameObject.name)
+        // Higher confidence still comes first, whatever the names.
+        val ranked = matcher.findMatches(listOf(RawLabel("Flower", 0.7f), RawLabel("Plant", 0.8f)))
+        assertEquals("Plant", ranked.first().gameObject.name)
+    }
+
+    @Test
     fun testHoldSurvivesBriefDropoutButResetsWhenLost() {
         val tracker = HoldTracker(holdMillis = 2_000L, lostGraceMillis = 500L)
         val match = LabelMatch(cup, "Mug", 0.85f)

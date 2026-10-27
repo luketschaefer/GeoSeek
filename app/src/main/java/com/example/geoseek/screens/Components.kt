@@ -1,6 +1,7 @@
 // Shared building blocks: outlined text, the rocking logo, pixel panels, menu items, buttons, fields, and bars.
 package com.example.geoseek.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -405,6 +406,8 @@ fun LevelUpOverlay(
     username: String,
     onDismiss: () -> Unit,
 ) {
+    // Back closes the celebration instead of leaving the screen underneath it.
+    BackHandler(onBack = onDismiss)
     val bob = rememberInfiniteTransition(label = "levelupBob")
     val hop by bob.animateFloat(0f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "hop")
     val pulse by bob.animateFloat(0.95f, 1.05f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "pulse")
