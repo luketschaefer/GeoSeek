@@ -10,6 +10,11 @@ CURRENT STATE OF THE GAME
 4. **Explorer Accounts, Progression Persistence & Leveling**: On-device explorer profile system backed by `AuthStore`, `ProgressStore`, and local `SharedPreferences`. Features PBKDF2 password hashing, persistent level progress (`XPManager`), trading card binder, best scores, daily quest tracking, and animated `LevelUpOverlay` celebrations.
 5. **Automated Testing Suite**: Tested with JUnit unit tests covering vision label matching, alias resolution, temporal frame streak filtering, `TimedHuntMode` scoring/timer, `CollectionMode` trading cards, and `XPManager` level progression.
 
+NEXT STEPS
+1. The card versus system is very unpolished, much work needs to be done on this system to make it engaging for the user, and fully integrated with other game modes, and the user profile.
+2. Object detection can be inconsistent, detecting objects wrongly, or not having enough confidence to detect objects that are actually in frame.
+3. Game elements such as experience quantities are unbalanced, and objects have been categorized without much thought as the object list is not fully implemented. Balancing this for a better user experience is needed.
+
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
 ## 1. Target Project & Scope
