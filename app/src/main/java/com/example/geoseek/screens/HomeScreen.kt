@@ -59,6 +59,7 @@ fun HomeScreen(player: Player, onOpen: (Destination) -> Unit, onClaimQuest: (Int
             MenuItem("Hunt", { onOpen(Destination.Hunt) }, Modifier.fillMaxWidth().entrance(1), Icons.Hunt, Scenes.Hunt.accent, "Timed Hunt: Race the clock for targets")
             MenuItem("Free Look", { onOpen(Destination.Explore) }, Modifier.fillMaxWidth().entrance(2), Icons.Explore, Scenes.Explore.accent, "Collection Mode: Discover new cards")
             MenuItem("Collection", { onOpen(Destination.Collection) }, Modifier.fillMaxWidth().entrance(3), Icons.Cards, Scenes.Collection.accent, "${player.cards.size} / ${com.example.geoseek.models.OBJECT_LIST.size} cards collected")
+            MenuItem("Versus", { onOpen(Destination.Versus) }, Modifier.fillMaxWidth().entrance(4), Icons.Versus, GeoColors.Danger, "Battle with the cards you have found")
             MenuItem("Profile", { onOpen(Destination.Profile) }, Modifier.fillMaxWidth().entrance(4), Icons.Profile, Scenes.Profile.accent, "Level ${player.levelInfo.level} Explorer • ${player.xp} XP")
         }
 
