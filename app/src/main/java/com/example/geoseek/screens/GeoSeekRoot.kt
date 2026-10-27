@@ -53,6 +53,7 @@ enum class Destination(val scene: Scene) {
     Hunt(Scenes.Hunt),
     Explore(Scenes.Explore),
     Collection(Scenes.Collection),
+    Versus(Scenes.Hunt.copy(accent = GeoColors.Danger)),
     Profile(Scenes.Profile),
 }
 
@@ -217,6 +218,7 @@ private fun MainContent(
             )
             Destination.Explore -> ExploreScreen(player, onBack = goHome, onCollect = onCollect)
             Destination.Collection -> CollectionScreen(player, onBack = goHome)
+            Destination.Versus -> VersusScreen(player, onBack = goHome, onFindCards = { onNavigate(Destination.Explore) })
             Destination.Profile -> ProfileScreen(player, onBack = goHome, onSignOut = onSignOut)
         }
     }

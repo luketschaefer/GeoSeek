@@ -46,6 +46,24 @@ fun DrawScope.drawSprite(sprite: Sprite, tint: Color = Color.White, shadow: Bool
 }
 
 object Icons {
+    /** Crossed swords for card duels, distinct from Hunt's targeting reticle. */
+    val Versus = Sprite(
+        listOf(
+            "XX.........XX",
+            "XXX.......XXX",
+            ".XXX.....XXX.",
+            "..XXX...XXX..",
+            "...XXX.XXX...",
+            "....XXXXX....",
+            ".....XXX.....",
+            "...XXXXXXX...",
+            "..XX.XXX.XX..",
+            ".X...X.X...X.",
+            "X...XX.XX...X",
+            "...XX...XX...",
+            "..XX.....XX..",
+        ),
+    )
     val Hunt = Sprite(
         listOf(
             "...XXXXX...",
