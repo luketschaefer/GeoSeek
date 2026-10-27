@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.example.geoseek.data.Player
 import com.example.geoseek.engine.DuelState
 import com.example.geoseek.engine.duelStats
 import com.example.geoseek.models.GameObject
