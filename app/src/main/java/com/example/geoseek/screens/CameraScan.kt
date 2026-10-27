@@ -54,6 +54,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.geoseek.audio.BitDefendersTheme
 import com.example.geoseek.detection.DetectionResult
 import com.example.geoseek.detection.ObjectDetector
 import com.example.geoseek.models.GameObject
@@ -135,7 +136,10 @@ fun CameraScan(
                 targetPool = targetPool,
                 scanId = scanId,
                 modifier = cameraModifier,
-                onResult = { detection = it },
+                onResult = {
+                    detection = it
+                    if (it.sawBitDefenders) BitDefendersTheme.play(context)
+                },
             ) { cameraError = it }
             if (cameraError == null && detection.error == null) {
                 Box(Modifier.fillMaxSize()) {

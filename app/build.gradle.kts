@@ -68,6 +68,8 @@ dependencies {
     implementation(libs.mlkit.image.labeling)
     // Outlines the objects in frame, so the labelers can look at just the one being aimed at.
     implementation(libs.mlkit.objects)
+    // Reads words in frame, for the BitDefenders easter egg (BitDefendersTheme).
+    implementation(libs.mlkit.text.recognition)
     // Runs the optional custom model (docs/custom-model.md). Keeps the org.tensorflow.lite API.
     implementation(libs.litert)
 

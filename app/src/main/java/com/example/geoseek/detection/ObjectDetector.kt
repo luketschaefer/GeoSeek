@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.example.geoseek.audio.BitDefendersTheme
 import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.OBJECT_LIST
 import com.google.android.gms.tasks.Tasks
@@ -15,6 +16,8 @@ import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -33,6 +36,7 @@ import kotlin.math.floor
  * @property progress How far through the hold the player is, 0..1.
  * @property imageWidth Width of the upright analysis image the boxes are measured in.
  * @property imageHeight Height of the upright analysis image the boxes are measured in.
+ * @property sawBitDefenders Whether this frame's text reading found the word "BitDefenders".
  */
 data class DetectionResult(
     val recognizedObject: GameObject? = null,
@@ -44,6 +48,7 @@ data class DetectionResult(
     val progress: Float = 0f,
     val imageWidth: Int = 0,
     val imageHeight: Int = 0,
+    val sawBitDefenders: Boolean = false,
 )
 
 /**
@@ -55,6 +60,7 @@ data class DetectionResult(
  * - **ML Kit Image Labeling**, plus the optional [CustomClassifier], label a crop around that object.
  * - [ObjectLabelMatcher] maps the labels to [targetPool], and [HoldTracker] confirms the object once it's been
  *   held on confidently for long enough.
+ * - **ML Kit Text Recognition** reads the whole frame every [textIntervalMillis], looking for "BitDefenders".
  *
  * All analysis runs on the detector's own background thread ([analysisExecutor]); results are posted to the
  * callback executor passed to [createAnalyzer].
@@ -62,12 +68,14 @@ data class DetectionResult(
  * @param targetPool Pool of valid findable objects; labels for anything else are ignored.
  * @param confidenceThreshold Minimum confidence required for a label match (default 0.50f).
  * @param labelIntervalMillis Minimum time between label readings on the same object. Outlines update every frame.
+ * @param textIntervalMillis Minimum time between text readings of the whole frame.
  */
 class ObjectDetector(
     context: Context,
     val targetPool: List<GameObject> = OBJECT_LIST,
     confidenceThreshold: Float = 0.50f,
     private val labelIntervalMillis: Long = 200L,
+    private val textIntervalMillis: Long = 500L,
 ) : AutoCloseable {
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -84,6 +92,7 @@ class ObjectDetector(
     private val labeler = ImageLabeling.getClient(
         ImageLabelerOptions.Builder().setConfidenceThreshold(0.35f).build(),
     )
+    private val textReader = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private val customClassifier = CustomClassifier.load(context.applicationContext)
     private val matcher = ObjectLabelMatcher(defaultConfidenceThreshold = confidenceThreshold)
     private val sanitizer = LabelSanitizer()
@@ -92,6 +101,7 @@ class ObjectDetector(
 
     // Only touched on the analysis thread.
     private var lastLabelTime: Long? = null
+    private var lastTextTime: Long? = null
     private var lastVisibleLabel: String? = null
     private var closed = false
 
@@ -153,6 +163,14 @@ class ObjectDetector(
         }
 
         val state = hold.update(seen, matches, now, labeled)
+
+        var sawBitDefenders = false
+        if (lastTextTime.let { it == null || now - it >= textIntervalMillis }) {
+            lastTextTime = now
+            val text = Tasks.await(textReader.process(InputImage.fromBitmap(buffer, rotation))).text
+            sawBitDefenders = BitDefendersTheme.mentionedIn(text)
+        }
+
         return DetectionResult(
             recognizedObject = state.candidate?.takeIf { state.confirmed },
             confidence = state.confidence,
@@ -162,6 +180,7 @@ class ObjectDetector(
             progress = state.progress,
             imageWidth = width,
             imageHeight = height,
+            sawBitDefenders = sawBitDefenders,
         )
     }
 
@@ -203,6 +222,7 @@ class ObjectDetector(
             closed = true
             outliner.close()
             labeler.close()
+            textReader.close()
             customClassifier?.close()
         }
         executor.shutdown()
