@@ -39,6 +39,8 @@ val DAILY_QUESTS = listOf(
  * never get a new-card quest, since they couldn't finish it.
  */
 fun questForDay(day: Int, binderComplete: Boolean, quests: List<DailyQuest> = DAILY_QUESTS): DailyQuest {
-    val eligible = if (binderComplete) quests.filter { it.goalType != QuestGoal.NEW_CARDS } else quests
+    val quest = quests[day.mod(quests.size)]
+    if (!binderComplete || quest.goalType != QuestGoal.NEW_CARDS) return quest
+    val eligible = quests.filter { it.goalType != QuestGoal.NEW_CARDS }
     return eligible[day.mod(eligible.size)]
 }
