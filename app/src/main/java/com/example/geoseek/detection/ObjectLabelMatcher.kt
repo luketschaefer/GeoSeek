@@ -56,6 +56,9 @@ class ObjectLabelMatcher(
         "Cat" to listOf("cat", "feline", "kitten"),
     )
 
+    /** ML Kit labels that contain an object's name but are something else ("Hot dog" is food, not a dog). */
+    private val notObjects = setOf("hot dog")
+
     /**
      * Searches raw ML Kit frame labels for a specific target [GameObject].
      *
@@ -136,6 +139,7 @@ class ObjectLabelMatcher(
      */
     private fun matchesAlias(label: String, alias: String): Boolean {
         val labelWords = words(label)
+        if (labelWords.joinToString(" ") in notObjects) return false
         val aliasWords = words(alias)
         if (labelWords.isEmpty() || aliasWords.isEmpty() || aliasWords.size > labelWords.size) return false
         return (0..labelWords.size - aliasWords.size).any { start ->
