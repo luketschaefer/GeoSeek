@@ -59,6 +59,15 @@ class ObjectDetectionTest {
     }
 
     @Test
+    fun testHotDogIsNotADog() {
+        val dogTarget = GameObject("Dog", Rarity.EPIC, 75)
+        val hotDogLabels = listOf(RawLabel("Hot dog", 0.90f))
+
+        assertNull(matcher.findTargetMatch(dogTarget, hotDogLabels))
+        assertTrue(matcher.findMatches(hotDogLabels).isEmpty())
+    }
+
+    @Test
     fun testLabelSanitizerSuppressesGenericLabels() {
         assertFalse(sanitizer.isMeaningfulLabel("Product"))
         assertFalse(sanitizer.isMeaningfulLabel("Material"))
