@@ -46,6 +46,16 @@ class DailyQuestsTest {
     }
 
     @Test
+    fun questForDay_completingTheBinderOnlyReplacesTheNewCardsQuest() {
+        repeat(DAILY_QUESTS.size * 7) { day ->
+            val before = questForDay(day, binderComplete = false)
+            if (before.goalType != QuestGoal.NEW_CARDS) {
+                assertEquals("day $day", before, questForDay(day, binderComplete = true))
+            }
+        }
+    }
+
+    @Test
     fun questForDay_handlesNegativeDays() {
         questForDay(-1, binderComplete = false)
     }
