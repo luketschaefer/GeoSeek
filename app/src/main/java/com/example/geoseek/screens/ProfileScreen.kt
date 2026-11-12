@@ -48,7 +48,7 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun ProfileScreen(player: Player, onBack: () -> Unit, onSignOut: () -> Unit) {
+fun ProfileScreen(player: Player, onBack: () -> Unit, onSignOut: () -> Unit, onHuntHistory: () -> Unit) {
     val accent = Scenes.Profile.accent
     val level = player.levelInfo
     var confirming by remember { mutableStateOf(false) }
@@ -105,7 +105,9 @@ fun ProfileScreen(player: Player, onBack: () -> Unit, onSignOut: () -> Unit) {
                 StatSlot("Best score", "${player.bestScore}", Icons.Trophy, GeoColors.Gold, Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(20.dp))
+            PixelButton("Hunt History", onHuntHistory, Modifier.fillMaxWidth(), color = accent, icon = Icons.Hunt)
+            Spacer(Modifier.height(12.dp))
             PixelButton("Sign Out", { confirming = true }, Modifier.fillMaxWidth().entrance(3), color = GeoColors.Danger, icon = Icons.Door)
             Spacer(Modifier.height(24.dp))
         }

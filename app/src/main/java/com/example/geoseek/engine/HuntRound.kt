@@ -3,6 +3,7 @@ package com.example.geoseek.engine
 
 import com.example.geoseek.engine.modes.TimedHuntMode
 import com.example.geoseek.models.GameObject
+import java.util.UUID
 
 /**
  * Encapsulates an active hunt round session, orchestrating game timers, target progress,
@@ -23,6 +24,9 @@ class HuntRound(
     val durationSeconds: Int = 60,
     val mode: GameMode = TimedHuntMode(timeLimitSeconds = durationSeconds),
 ) {
+    /** Stable identity for a round, so repeated finish callbacks cannot save its rewards twice. */
+    val id: String = UUID.randomUUID().toString()
+
     /** Internal mutable session state instance. */
     val state = GameSessionState(
         targetObjects = targets,

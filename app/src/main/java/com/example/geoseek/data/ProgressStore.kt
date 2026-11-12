@@ -3,6 +3,8 @@ package com.example.geoseek.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.geoseek.engine.GameScoreResult
+import com.example.geoseek.engine.HuntRound
 import com.example.geoseek.managers.XPManager
 import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.Rarity
@@ -16,6 +18,7 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
     constructor(context: Context) : this(PlayerPrefs.from(context))
 
     private val prefs get() = store.prefs
+    private val history = HuntHistoryStore(store)
     private fun key(username: String, field: String) = store.key(username, field)
 
     /**
@@ -48,18 +51,28 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
      * Records a finished hunt: the score counts toward the best score, the XP is banked,
      * every found object adds a card (or a duplicate) to the collection, and each find counts toward the daily quest.
      */
-    fun recordHunt(stale: Player, score: Int, xpEarned: Int, found: List<GameObject>): Player {
+    fun recordHunt(stale: Player, score: Int, xpEarned: Int, found: List<GameObject>): Player =
+        saveHunt(stale, score, xpEarned, found, record = null)
+
+    /** Saves a Timed Hunt's history and rewards together, once per round. */
+    fun recordHunt(stale: Player, round: HuntRound, result: GameScoreResult): Player =
+        saveHunt(stale, result.totalScore, result.totalXpEarned, round.found, HuntRecord.from(round, result))
+
+    private fun saveHunt(stale: Player, score: Int, xpEarned: Int, found: List<GameObject>, record: HuntRecord?): Player = synchronized(prefs) {
         val player = fresh(stale)
         val name = player.username
-        prefs.edit()
+        val previous = history.load(name)
+        if (record != null && record.id in previous.recordedRoundIds) return@synchronized player
+        val editor = prefs.edit()
             .putInt(key(name, "hunts"), player.huntsPlayed + 1)
             .putInt(key(name, "best"), maxOf(player.bestScore, score))
             .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, xpEarned))
             .addCards(player, found, System.currentTimeMillis())
             .addDailyFinds(player, found)
             .putInt(key(name, "hunts.${today()}"), player.daily.hunts + 1)
-            .apply()
-        return store.load(name) ?: player
+        if (record != null) history.write(editor, name, previous.adding(record))
+        editor.apply()
+        store.load(name) ?: player
     }
 
     /** Adds a card. Optional [xpEarned] parameter allows custom game modes (e.g. CollectionMode) to award dynamic XP. */
