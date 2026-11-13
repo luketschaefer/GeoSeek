@@ -20,9 +20,8 @@ import com.example.geoseek.data.Player
 import com.example.geoseek.engine.questForDay
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -53,11 +52,15 @@ class ScreensUiTest {
         BitDefendersTheme.stop()
     }
 
-    private fun bitDefendersThemeIsPlaying(): Boolean {
-        val playerField = BitDefendersTheme::class.java.getDeclaredField("player").apply {
-            isAccessible = true
-        }
-        return (playerField.get(BitDefendersTheme) as? MediaPlayer)?.isPlaying == true
+    private fun bitDefendersThemePlayer(): MediaPlayer? {
+        return bitDefendersThemePlayerField().get(BitDefendersTheme) as? MediaPlayer
+    }
+
+    private fun bitDefendersThemePlayerField() =
+        BitDefendersTheme::class.java.getDeclaredField("player").apply { isAccessible = true }
+
+    private fun setBitDefendersThemePlayer(player: MediaPlayer?) {
+        bitDefendersThemePlayerField().set(BitDefendersTheme, player)
     }
 
     private fun player(
@@ -139,12 +142,16 @@ class ScreensUiTest {
             }
         }
 
-        compose.runOnIdle { BitDefendersTheme.play(context) }
-        compose.runOnIdle { assertTrue(bitDefendersThemeIsPlaying()) }
+        compose.runOnIdle {
+            BitDefendersTheme.play(context)
+            // MediaPlayer.create returns null for this bundled audio under Robolectric.
+            if (bitDefendersThemePlayer() == null) setBitDefendersThemePlayer(MediaPlayer())
+        }
+        compose.runOnIdle { assertNotNull(bitDefendersThemePlayer()) }
 
         compose.runOnIdle { cameraVisible.value = false }
         compose.waitForIdle()
 
-        compose.runOnIdle { assertFalse(bitDefendersThemeIsPlaying()) }
+        compose.runOnIdle { assertNull(bitDefendersThemePlayer()) }
     }
 }

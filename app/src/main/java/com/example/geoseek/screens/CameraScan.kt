@@ -77,6 +77,10 @@ fun CameraScan(
     val activity = LocalActivity.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    DisposableEffect(Unit) {
+        onDispose { BitDefendersTheme.stop() }
+    }
+
     var permissionRevision by remember { mutableIntStateOf(0) }
     var permanentlyDenied by remember { mutableStateOf(value = false) }
     var scanId by remember { mutableIntStateOf(0) }
