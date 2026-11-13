@@ -1,6 +1,9 @@
 package com.example.geoseek.screens
 
 import android.content.Context
+import android.media.MediaPlayer
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -9,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
+import com.example.geoseek.audio.BitDefendersTheme
 import com.example.geoseek.data.AuthStore
 import com.example.geoseek.data.CardRecord
 import com.example.geoseek.data.DailyProgress
@@ -16,6 +20,7 @@ import com.example.geoseek.data.Player
 import com.example.geoseek.engine.questForDay
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
@@ -44,6 +49,18 @@ class ScreensUiTest {
     @After
     fun tearDown() {
         prefs().edit().clear().commit()
+        BitDefendersTheme.stop()
+    }
+
+    private fun bitDefendersThemePlayer(): MediaPlayer? {
+        return bitDefendersThemePlayerField().get(BitDefendersTheme) as? MediaPlayer
+    }
+
+    private fun bitDefendersThemePlayerField() =
+        BitDefendersTheme::class.java.getDeclaredField("player").apply { isAccessible = true }
+
+    private fun setBitDefendersThemePlayer(player: MediaPlayer?) {
+        bitDefendersThemePlayerField().set(BitDefendersTheme, player)
     }
 
     private fun player(
@@ -114,5 +131,27 @@ class ScreensUiTest {
 
         text("x3").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("x1").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun cameraScan_disposalStopsBitDefendersThemePlayback() {
+        val cameraVisible = mutableStateOf(true)
+        compose.setContent {
+            if (cameraVisible.value) {
+                CameraScan(targetPool = emptyList(), accent = Color.Red, onRecognized = {})
+            }
+        }
+
+        compose.runOnIdle {
+            BitDefendersTheme.play(context)
+            // MediaPlayer.create returns null for this bundled audio under Robolectric.
+            if (bitDefendersThemePlayer() == null) setBitDefendersThemePlayer(MediaPlayer())
+        }
+        compose.runOnIdle { assertNotNull(bitDefendersThemePlayer()) }
+
+        compose.runOnIdle { cameraVisible.value = false }
+        compose.waitForIdle()
+
+        compose.runOnIdle { assertNull(bitDefendersThemePlayer()) }
     }
 }
