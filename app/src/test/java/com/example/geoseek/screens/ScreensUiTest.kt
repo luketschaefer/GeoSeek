@@ -13,7 +13,6 @@ import com.example.geoseek.data.AuthStore
 import com.example.geoseek.data.CardRecord
 import com.example.geoseek.data.DailyProgress
 import com.example.geoseek.data.Player
-import com.example.geoseek.data.today
 import com.example.geoseek.engine.questForDay
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -51,7 +50,7 @@ class ScreensUiTest {
         binder: Map<String, CardRecord> = emptyMap(),
         daily: DailyProgress = DailyProgress(),
         questClaimedToday: Boolean = false,
-    ) = Player("Tester", 0L, 0, 0, 0, binder, daily, questClaimedToday)
+    ) = Player("Tester", 0L, 0, 0, 0, binder, daily, questClaimedToday, questDay = 2026314)
 
     private fun text(value: String) = compose.onAllNodesWithText(value).onFirst()
 
@@ -86,10 +85,11 @@ class ScreensUiTest {
 
     @Test
     fun home_finishedQuestCanBeClaimedForItsReward() {
-        val quest = questForDay(today(), binderComplete = false)
+        val done = player(daily = DailyProgress(10, 10, 10, 10))
+        val quest = questForDay(done.questDay, binderComplete = false)
         var claimed: Int? = null
         compose.setContent {
-            HomeScreen(player(daily = DailyProgress(10, 10, 10, 10)), onOpen = {}, onClaimQuest = { claimed = it })
+            HomeScreen(done, onOpen = {}, onClaimQuest = { claimed = it })
         }
 
         text(quest.title).assertIsDisplayed()

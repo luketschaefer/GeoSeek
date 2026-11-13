@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.geoseek.data.Player
 import com.example.geoseek.data.levelInfo
-import com.example.geoseek.data.today
 import com.example.geoseek.engine.questForDay
 import com.example.geoseek.models.OBJECT_LIST
 import java.util.Calendar
@@ -84,7 +83,7 @@ private fun PlayerBadge(player: Player, modifier: Modifier = Modifier) {
 
 @Composable
 private fun QuestPanel(player: Player, onClaim: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val quest = questForDay(today(), binderComplete = OBJECT_LIST.all { it.name in player.cards })
+    val quest = questForDay(player.questDay, binderComplete = OBJECT_LIST.all { it.name in player.cards })
     val progress = quest.progress(player.daily)
     val done = quest.isDone(player.daily)
     Panel(modifier) {

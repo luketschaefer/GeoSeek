@@ -3,12 +3,15 @@ package com.example.geoseek.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.util.Calendar
 
 /**
  * Reads players from the app's one preferences file. [AuthStore] and [ProgressStore] write to it;
  * both go through here so they agree on key names.
  */
-internal class PlayerPrefs(val prefs: SharedPreferences) {
+internal class PlayerPrefs(val prefs: SharedPreferences, private val clock: DailyQuestClock) {
+
+    fun today(): Int = clock.today()
 
     fun key(username: String, field: String) = "user.${username.lowercase()}.$field"
 
@@ -16,8 +19,9 @@ internal class PlayerPrefs(val prefs: SharedPreferences) {
 
     fun exists(username: String) = prefs.contains(key(username, "hash"))
 
-    fun load(username: String): Player? {
+    fun load(username: String, day: Int = today()): Player? {
         val display = prefs.getString(key(username, "display"), null) ?: return null
+        migrateDailyProgress(username, day)
         return Player(
             username = display,
             joinedAtMillis = prefs.getLong(key(username, "joined"), 0L),
@@ -32,20 +36,56 @@ internal class PlayerPrefs(val prefs: SharedPreferences) {
                 )
             },
             daily = DailyProgress(
-                finds = prefs.getInt(key(username, "finds.${today()}"), 0),
-                rareFinds = prefs.getInt(key(username, "rare.${today()}"), 0),
-                newCards = prefs.getInt(key(username, "newcards.${today()}"), 0),
-                hunts = prefs.getInt(key(username, "hunts.${today()}"), 0),
+                finds = prefs.getInt(key(username, "finds.$day"), 0),
+                rareFinds = prefs.getInt(key(username, "rare.$day"), 0),
+                newCards = prefs.getInt(key(username, "newcards.$day"), 0),
+                hunts = prefs.getInt(key(username, "hunts.$day"), 0),
             ),
-            questClaimedToday = prefs.getBoolean(key(username, "quest.${today()}"), false),
+            questClaimedToday = prefs.getBoolean(key(username, "quest.$day"), false),
+            questDay = day,
         )
+    }
+
+    /** Preserve today's legacy local-date progress when first switching this player to UTC. */
+    private fun migrateDailyProgress(username: String, day: Int) {
+        val migrated = key(username, "quest_clock_migrated")
+        if (prefs.getBoolean(migrated, false)) return
+        val legacyDay = Calendar.getInstance().let {
+            it.get(Calendar.YEAR) * 1000 + it.get(Calendar.DAY_OF_YEAR)
+        }
+        prefs.edit().apply {
+            if (legacyDay != day) {
+                listOf("finds", "rare", "newcards", "hunts").forEach { field ->
+                    putInt(
+                        key(username, "$field.$day"),
+                        maxOf(
+                            prefs.getInt(key(username, "$field.$day"), 0),
+                            prefs.getInt(key(username, "$field.$legacyDay"), 0),
+                        ),
+                    )
+                    remove(key(username, "$field.$legacyDay"))
+                }
+                putBoolean(
+                    key(username, "quest.$day"),
+                    prefs.getBoolean(key(username, "quest.$day"), false) ||
+                        prefs.getBoolean(key(username, "quest.$legacyDay"), false),
+                )
+                // Move rather than copy: tomorrow must not reload the same legacy progress.
+                remove(key(username, "quest.$legacyDay"))
+            }
+            putBoolean(migrated, true)
+            apply()
+        }
     }
 
     companion object {
         // Kept from when accounts were the only thing stored, so existing players keep their progress.
         private const val FILE = "geoseek_auth"
 
-        fun from(context: Context) =
-            PlayerPrefs(context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE))
+        fun from(context: Context): PlayerPrefs {
+            val app = context.applicationContext
+            val prefs = app.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            return PlayerPrefs(prefs, DailyQuestClock.from(app, prefs))
+        }
     }
 }

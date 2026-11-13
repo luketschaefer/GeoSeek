@@ -35,7 +35,7 @@ val DAILY_QUESTS = listOf(
 )
 
 /**
- * The quest for [day] (see [com.example.geoseek.data.today]). Players who already own every card
+ * The quest for [day] (see [com.example.geoseek.data.Player.questDay]). Players who already own every card
  * never get a new-card quest, since they couldn't finish it.
  */
 fun questForDay(day: Int, binderComplete: Boolean, quests: List<DailyQuest> = DAILY_QUESTS): DailyQuest {

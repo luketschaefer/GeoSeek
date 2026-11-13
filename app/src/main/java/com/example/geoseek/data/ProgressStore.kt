@@ -3,8 +3,10 @@ package com.example.geoseek.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.geoseek.engine.questForDay
 import com.example.geoseek.managers.XPManager
 import com.example.geoseek.models.GameObject
+import com.example.geoseek.models.OBJECT_LIST
 import com.example.geoseek.models.Rarity
 
 /**
@@ -22,12 +24,11 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
      * [player] as currently stored. Screens can hold a copy that's out of date (loaded before another save, or
      * before midnight rolled the daily progress over), and building on it would overwrite newer progress.
      */
-    private fun fresh(player: Player): Player = store.load(player.username) ?: player
+    private fun fresh(player: Player, day: Int): Player = store.load(player.username, day) ?: player
 
     /** Counts [found] toward today's finds, rare finds, and new cards for the daily quest. */
-    private fun SharedPreferences.Editor.addDailyFinds(player: Player, found: List<GameObject>) = apply {
+    private fun SharedPreferences.Editor.addDailyFinds(player: Player, found: List<GameObject>, day: Int) = apply {
         val name = player.username
-        val day = today()
         putInt(key(name, "finds.$day"), player.daily.finds + found.size)
         putInt(key(name, "rare.$day"), player.daily.rareFinds + found.count { it.rarity >= Rarity.RARE })
         putInt(key(name, "newcards.$day"), player.daily.newCards + found.map { it.name }.distinct().count { it !in player.cards })
@@ -49,41 +50,46 @@ class ProgressStore internal constructor(private val store: PlayerPrefs) {
      * every found object adds a card (or a duplicate) to the collection, and each find counts toward the daily quest.
      */
     fun recordHunt(stale: Player, score: Int, xpEarned: Int, found: List<GameObject>): Player {
-        val player = fresh(stale)
+        val day = store.today()
+        val player = fresh(stale, day)
         val name = player.username
         prefs.edit()
             .putInt(key(name, "hunts"), player.huntsPlayed + 1)
             .putInt(key(name, "best"), maxOf(player.bestScore, score))
             .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, xpEarned))
             .addCards(player, found, System.currentTimeMillis())
-            .addDailyFinds(player, found)
-            .putInt(key(name, "hunts.${today()}"), player.daily.hunts + 1)
+            .addDailyFinds(player, found, day)
+            .putInt(key(name, "hunts.$day"), player.daily.hunts + 1)
             .apply()
-        return store.load(name) ?: player
+        return store.load(name, day) ?: player
     }
 
     /** Adds a card. Optional [xpEarned] parameter allows custom game modes (e.g. CollectionMode) to award dynamic XP. */
     fun collect(stale: Player, obj: GameObject, xpEarned: Int? = null): Player {
-        val player = fresh(stale)
+        val day = store.today()
+        val player = fresh(stale, day)
         val name = player.username
         val isNew = obj.name !in player.cards
         val addedXp = xpEarned ?: if (isNew) obj.points else 0
         prefs.edit()
             .addCards(player, listOf(obj), System.currentTimeMillis())
-            .addDailyFinds(player, listOf(obj))
+            .addDailyFinds(player, listOf(obj), day)
             .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, addedXp))
             .apply()
-        return store.load(name) ?: player
+        return store.load(name, day) ?: player
     }
 
     fun claimQuest(stale: Player, rewardXp: Int): Player {
-        val player = fresh(stale)
-        if (player.questClaimedToday) return player
+        val day = store.today()
+        val player = fresh(stale, day)
+        if (stale.questDay != day || player.questClaimedToday) return player
+        val quest = questForDay(day, binderComplete = OBJECT_LIST.all { it.name in player.cards })
+        if (!quest.isDone(player.daily) || rewardXp != quest.rewardXp) return player
         val name = player.username
         prefs.edit()
             .putInt(key(name, "xp"), XPManager.addXpCapped(player.xp, rewardXp))
-            .putBoolean(key(name, "quest.${today()}"), true)
+            .putBoolean(key(name, "quest.$day"), true)
             .apply()
-        return store.load(name) ?: player
+        return store.load(name, day) ?: player
     }
 }

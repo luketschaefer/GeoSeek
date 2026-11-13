@@ -2,7 +2,6 @@
 package com.example.geoseek.data
 
 import com.example.geoseek.managers.XPManager
-import java.util.Calendar
 
 /**
  * One card in a player's binder.
@@ -29,6 +28,7 @@ data class Player(
     val binder: Map<String, CardRecord>,
     val daily: DailyProgress,
     val questClaimedToday: Boolean,
+    val questDay: Int = 0,
 ) {
     /** Objects found today, in any mode. */
     val findsToday: Int get() = daily.finds
@@ -47,6 +47,3 @@ data class LevelInfo(val level: Int, val intoLevel: Int, val needed: Int) {
 /** Level progress, using XPManager's level curve. */
 val Player.levelInfo: LevelInfo
     get() = LevelInfo(XPManager.levelFor(xp), XPManager.xpIntoLevel(xp), XPManager.XP_PER_LEVEL)
-
-/** Today's date as a number, used to key daily progress. */
-fun today(): Int = Calendar.getInstance().let { it.get(Calendar.YEAR) * 1000 + it.get(Calendar.DAY_OF_YEAR) }

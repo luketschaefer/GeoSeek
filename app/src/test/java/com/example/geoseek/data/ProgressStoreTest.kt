@@ -3,6 +3,7 @@ package com.example.geoseek.data
 import android.app.Application
 import android.content.Context
 import com.example.geoseek.engine.HuntRound
+import com.example.geoseek.engine.questForDay
 import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.Rarity
 import org.junit.After
@@ -41,6 +42,17 @@ class ProgressStoreTest {
     }
 
     private fun prefs() = application.getSharedPreferences("geoseek_auth", Context.MODE_PRIVATE)
+
+    private fun completedQuestPlayer(): Player {
+        val day = player.questDay
+        prefs().edit()
+            .putInt("user.explorer.finds.$day", 5)
+            .putInt("user.explorer.rare.$day", 2)
+            .putInt("user.explorer.newcards.$day", 1)
+            .putInt("user.explorer.hunts.$day", 2)
+            .apply()
+        return AuthStore(application).currentPlayer()!!
+    }
 
     @Test
     fun recordHunt_banksXpScoreCardsAndFinds() {
@@ -93,9 +105,11 @@ class ProgressStoreTest {
 
     @Test
     fun claimQuest_onlyPaysOncePerDay() {
-        val claimed = progress.claimQuest(player, 50)
+        val done = completedQuestPlayer()
+        val reward = questForDay(done.questDay, binderComplete = false).rewardXp
+        val claimed = progress.claimQuest(done, reward)
         assertTrue(claimed.questClaimedToday)
-        assertEquals(50, progress.claimQuest(claimed, 50).xp)
+        assertEquals(reward, progress.claimQuest(claimed, reward).xp)
         assertFalse(player.questClaimedToday)
     }
 
@@ -140,7 +154,9 @@ class ProgressStoreTest {
         assertEquals(15, after.xp)
         assertEquals(2, after.findsToday)
         // The stale copy doesn't know the quest was claimed, but the store does.
-        progress.claimQuest(player, 50)
-        assertEquals(65, progress.claimQuest(player, 50).xp)
+        val done = completedQuestPlayer()
+        val reward = questForDay(done.questDay, binderComplete = false).rewardXp
+        progress.claimQuest(done, reward)
+        assertEquals(15 + reward, progress.claimQuest(player, reward).xp)
     }
 }
