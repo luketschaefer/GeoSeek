@@ -1,6 +1,8 @@
 package com.example.geoseek.screens
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.pm.ActivityInfo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -9,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
+import com.example.geoseek.MainActivity
 import com.example.geoseek.data.AuthStore
 import com.example.geoseek.data.CardRecord
 import com.example.geoseek.data.DailyProgress
@@ -114,5 +117,16 @@ class ScreensUiTest {
 
         text("x3").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("x1").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun mainActivity_isLockedToPortraitOrientation() {
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
+        val activityInfo = appContext.packageManager.getActivityInfo(
+            ComponentName(appContext, MainActivity::class.java),
+            0,
+        )
+
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, activityInfo.screenOrientation)
     }
 }
