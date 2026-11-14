@@ -25,7 +25,7 @@ class GameModesTest {
             environment = "Living Room",
             targets = targetList,
             durationSeconds = 60,
-            mode = TimedHuntMode(timeLimitSeconds = 60),
+            mode = TimedHuntMode(),
         )
 
         assertFalse(round.isOver())
@@ -62,7 +62,7 @@ class GameModesTest {
             environment = "Garage",
             targets = targetList,
             durationSeconds = 10,
-            mode = TimedHuntMode(timeLimitSeconds = 10),
+            mode = TimedHuntMode(timeLimitSeconds = 10,),
         )
 
         round.tickTime(10)
@@ -103,4 +103,23 @@ class GameModesTest {
         assertEquals(100, xpManager.xpForNextLevel)
         assertTrue(xpManager.progressToNextLevel >= 0f)
     }
+
+    @Test
+    fun testTimedHuntNoCardXpForAlreadyOwnedCard() {
+        fun xpFor(owned: Set<String>): Int {
+            val round = HuntRound(
+                environment = "Garage",
+                targets = targetList,
+                durationSeconds = 60,
+                mode = TimedHuntMode(timeLimitSeconds = 60, ownedCardNames = owned),
+            )
+            round.onObjectFound(chair)
+            return round.finish().totalXpEarned
+        }
+
+        // Chair is worth 10 points, so its card XP is 20.
+        assertEquals(xpFor(emptySet()) - 20, xpFor(setOf("Chair")))
+    }
+
+
 }
