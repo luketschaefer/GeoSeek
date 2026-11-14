@@ -23,6 +23,7 @@ import com.example.geoseek.models.GameObject
 class TimedHuntMode(
     val timeLimitSeconds: Int = 60,
     private val timeBonusMultiplier: Int = 5,
+    private val ownedCardNames: Set<String> = emptySet(),
 ) : GameMode {
     override val name: String = "Timed Mode"
     override val description: String = "Find all target objects before the countdown timer runs out."
@@ -97,10 +98,11 @@ class TimedHuntMode(
         val totalScore = basePoints + timeBonus
 
         val cards = state.foundObjects.map { obj ->
+            val isNew = ownedCardNames.none { it.equals(obj.name, ignoreCase = true) }
             Card(
                 obj = obj,
-                xpValue = obj.points * 2,
-                isNewDiscovery = true,
+                xpValue = if (isNew) obj.points * 2 else 0,
+                isNewDiscovery = isNew,
             )
         }
         val totalXp = cards.sumOf { (_, _, xpValue) -> xpValue } + (if (isVictory) 50 else 10)

@@ -108,7 +108,7 @@ fun HuntScreen(
 
     fun startHunt() {
         val env = ENVIRONMENTS[selectedEnv]
-        val modeInstance = TimedHuntMode(timeLimitSeconds = env.durationSeconds)
+        val modeInstance = TimedHuntMode(timeLimitSeconds = env.durationSeconds, ownedCardNames = player.cards)
         val targets = pickHuntTargets(env.habitat, env.targetCount, customModelAvailable)
         round = HuntRound(env.name, targets, env.durationSeconds, modeInstance)
         found.clear()
