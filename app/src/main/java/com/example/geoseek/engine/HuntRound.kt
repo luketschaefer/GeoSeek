@@ -22,6 +22,7 @@ class HuntRound(
     val targets: List<GameObject>,
     val durationSeconds: Int = 60,
     val mode: GameMode = TimedHuntMode(timeLimitSeconds = durationSeconds),
+    val allowTapFinds: Boolean = false,
 ) {
     /** Internal mutable session state instance. */
     val state = GameSessionState(
@@ -56,7 +57,10 @@ class HuntRound(
      * @param obj The [GameObject] detected by vision analysis.
      * @return [GameRuleOutcome] containing points earned and card rewards.
      */
-    fun onObjectFound(obj: GameObject): GameRuleOutcome {
+    fun onObjectFound(obj: GameObject, source: FindSource = FindSource.CAMERA): GameRuleOutcome {
+        if (source == FindSource.TAP && !allowTapFinds) {
+            return GameRuleOutcome(result = ObjectFindResult.TAP_DISABLED, pointsEarned = 0)
+        }
         val outcome = mode.evaluateFoundObject(obj, state)
         state.status = mode.evaluateGameStatus(state)
         return outcome
