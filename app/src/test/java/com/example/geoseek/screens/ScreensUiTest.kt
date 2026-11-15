@@ -1,6 +1,8 @@
 package com.example.geoseek.screens
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.media.MediaPlayer
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
@@ -12,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
+import com.example.geoseek.MainActivity
 import com.example.geoseek.audio.BitDefendersTheme
 import com.example.geoseek.data.AuthStore
 import com.example.geoseek.data.CardRecord
@@ -134,6 +137,14 @@ class ScreensUiTest {
     }
 
     @Test
+    fun mainActivity_isLockedToPortraitOrientation() {
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
+        val activityInfo = appContext.packageManager.getActivityInfo(
+            ComponentName(appContext, MainActivity::class.java),
+            0,
+        )
+
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, activityInfo.screenOrientation)
     fun cameraScan_disposalStopsBitDefendersThemePlayback() {
         val cameraVisible = mutableStateOf(true)
         compose.setContent {
