@@ -59,6 +59,43 @@ class ObjectDetectionTest {
     }
 
     @Test
+    fun testHotDogIsNotADog() {
+        val dogTarget = GameObject("Dog", Rarity.EPIC, 75)
+        val hotDogLabels = listOf(RawLabel("Hot dog", 0.90f), RawLabel("American hot dog", 0.90f))
+
+        hotDogLabels.forEach { label ->
+            assertNull(matcher.findTargetMatch(dogTarget, listOf(label)))
+            assertTrue(matcher.findMatches(listOf(label)).isEmpty())
+        }
+    }
+
+    @Test
+    fun testLabelsThatOnlyStartWithAnObjectAreNotThatObject() {
+        val notTheObject = mapOf(
+            "Dog food" to "Dog", "Cat food" to "Cat", "Car wash" to "Car", "Table tennis" to "Table",
+            "Book shelf" to "Book", "Shoe box" to "Shoe", "Bottle cap" to "Bottle", "Tree house" to "Tree",
+            "Clock tower" to "Clock", "Bed sheet" to "Bed", "Mouse pad" to "Mouse", "Cup holder" to "Cup",
+            "Bike rack" to "Bicycle", "Glass door" to "Cup", "Light bulb" to "Lamp",
+        )
+        notTheObject.forEach { (label, name) ->
+            val found = matcher.findMatches(listOf(RawLabel(label, 0.95f))).map { it.gameObject.name }
+            assertFalse("$label counted as $name", name in found)
+        }
+    }
+
+    @Test
+    fun testLabelsThatEndWithAnObjectStillMatch() {
+        val stillTheObject = mapOf(
+            "Coffee cup" to "Cup", "Office chair" to "Chair", "Glass bottle" to "Bottle", "Wall clock" to "Clock",
+            "Potted plant" to "Plant", "Mountain bike" to "Bicycle", "Running shoe" to "Shoe",
+        )
+        stillTheObject.forEach { (label, name) ->
+            val found = matcher.findMatches(listOf(RawLabel(label, 0.95f))).map { it.gameObject.name }
+            assertTrue("$label should count as $name", name in found)
+        }
+    }
+
+    @Test
     fun testLabelSanitizerSuppressesGenericLabels() {
         assertFalse(sanitizer.isMeaningfulLabel("Product"))
         assertFalse(sanitizer.isMeaningfulLabel("Material"))

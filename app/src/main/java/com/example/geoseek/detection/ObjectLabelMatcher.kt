@@ -56,6 +56,9 @@ class ObjectLabelMatcher(
         "Cat" to listOf("cat", "feline", "kitten"),
     )
 
+    /** ML Kit labels that end with an object's name but are something else ("Hot dog" is food, not a dog). */
+    private val notObjects = setOf("hot dog")
+
     /**
      * Searches raw ML Kit frame labels for a specific target [GameObject].
      *
@@ -132,15 +135,18 @@ class ObjectLabelMatcher(
     }
 
     /**
-     * Checks whether a label contains an alias as whole words, so "Coffee cup" matches "cup" but "Cupboard" doesn't.
+     * Checks whether a label ends with an alias as whole words. The last words of a label say what the thing is
+     * ("Coffee cup" is a cup, "Cup holder" is a holder), so "Coffee cup" matches "cup" but "Cup holder" and
+     * "Cupboard" don't.
      */
     private fun matchesAlias(label: String, alias: String): Boolean {
         val labelWords = words(label)
+        if (labelWords.isEmpty()) return false
+        val fullLabelString = labelWords.joinToString(" ")
+        if (notObjects.any { notObj -> fullLabelString == notObj || fullLabelString.endsWith(" $notObj") }) return false
         val aliasWords = words(alias)
-        if (labelWords.isEmpty() || aliasWords.isEmpty() || aliasWords.size > labelWords.size) return false
-        return (0..labelWords.size - aliasWords.size).any { start ->
-            aliasWords.indices.all { labelWords[start + it] == aliasWords[it] }
-        }
+        if (aliasWords.isEmpty() || aliasWords.size > labelWords.size) return false
+        return labelWords.takeLast(aliasWords.size) == aliasWords
     }
 
     private fun words(text: String): List<String> =
