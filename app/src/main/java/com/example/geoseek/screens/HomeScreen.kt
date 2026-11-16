@@ -1,4 +1,4 @@
-// Main menu: the rocking logo, the player's level, today's quest, and a title-screen menu into each mode.
+// Main menu: the rocking logo, the player's level, today's quest, suggested finds, and a title-screen menu into each mode.
 package com.example.geoseek.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -20,13 +20,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.geoseek.data.Player
 import com.example.geoseek.data.levelInfo
+import com.example.geoseek.detection.CustomClassifier
 import com.example.geoseek.engine.questForDay
+import com.example.geoseek.engine.suggestedFinds
+import com.example.geoseek.engine.whereToLook
 import com.example.geoseek.models.OBJECT_LIST
 import java.util.Calendar
 
@@ -58,6 +63,8 @@ fun HomeScreen(player: Player, onOpen: (Destination) -> Unit, onClaimQuest: (Int
 
         Spacer(Modifier.height(36.dp))
         QuestPanel(player, onClaimQuest, Modifier.widthIn(max = 460.dp).fillMaxWidth().entrance(5))
+        Spacer(Modifier.height(16.dp))
+        SuggestedFindsPanel(player, { onOpen(Destination.Explore) }, Modifier.widthIn(max = 460.dp).fillMaxWidth().entrance(6))
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -115,6 +122,41 @@ private fun QuestPanel(player: Player, onClaim: (Int) -> Unit, modifier: Modifie
                     Spacer(Modifier.height(12.dp))
                     PixelButton("Claim ${quest.rewardXp} XP", { onClaim(quest.rewardXp) }, Modifier.fillMaxWidth(), color = GeoColors.Gold, icon = Icons.Star)
                 }
+            }
+        }
+    }
+}
+
+/** The next few cards worth looking for, easiest first, with a shortcut into Free Look. */
+@Composable
+private fun SuggestedFindsPanel(player: Player, onLook: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val customModelAvailable = remember { CustomClassifier.isBundled(context) }
+    val suggested = suggestedFinds(player.cards, customModelAvailable)
+    Panel(modifier) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PixelSprite(Icons.Explore, Modifier.size(18.dp), tint = Scenes.Explore.accent)
+                Spacer(Modifier.width(8.dp))
+                Text("SUGGESTED FINDS", style = GeoType.Caption.copy(letterSpacing = 2.sp), color = Scenes.Explore.accent)
+            }
+            Spacer(Modifier.height(8.dp))
+            if (suggested.isEmpty()) {
+                Text("Nothing left to suggest. You have every card you can find.", style = GeoType.Body, color = GeoColors.TextSoft)
+            } else {
+                suggested.forEach { obj ->
+                    Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        PixelSprite(ObjectSprites.forObject(obj), Modifier.size(28.dp), tint = rarityColor(obj.rarity))
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(obj.name, style = GeoType.Label, color = GeoColors.Text)
+                            Text("${rarityLabel(obj.rarity)} • ${whereToLook(obj)}", style = GeoType.Caption, color = GeoColors.TextSoft)
+                        }
+                        Text("+${obj.points}", style = GeoType.Label, color = GeoColors.TextSoft)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                PixelButton("Go Look", onLook, Modifier.fillMaxWidth(), color = Scenes.Explore.accent, icon = Icons.Explore)
             }
         }
     }
