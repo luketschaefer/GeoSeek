@@ -91,7 +91,7 @@ fun HuntScreen(
     player: Player,
     onBack: () -> Unit,
     onImmersiveChange: (Boolean) -> Unit,
-    onHuntFinished: (result: GameScoreResult, found: List<GameObject>) -> Unit,
+    onHuntFinished: (round: HuntRound, result: GameScoreResult) -> Unit,
 ) {
     val accent = Scenes.Hunt.accent
     val context = LocalContext.current
@@ -126,7 +126,7 @@ fun HuntScreen(
         val final = r.finish()
         result = final
         phase = HuntPhase.Results
-        onHuntFinished(final, found.toList())
+        onHuntFinished(r, final)
     }
 
     fun find(obj: GameObject) {

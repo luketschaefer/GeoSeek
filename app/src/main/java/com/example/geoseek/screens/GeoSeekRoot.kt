@@ -49,6 +49,7 @@ import com.example.geoseek.data.AuthStore
 import com.example.geoseek.data.Player
 import com.example.geoseek.data.levelInfo
 import com.example.geoseek.data.ProgressStore
+import com.example.geoseek.engine.HuntRound
 import com.example.geoseek.engine.GameScoreResult
 import com.example.geoseek.models.GameObject
 import kotlinx.coroutines.delay
@@ -60,6 +61,7 @@ enum class Destination(val scene: Scene) {
     Collection(Scenes.Collection),
     Versus(Scenes.Hunt.copy(accent = GeoColors.Danger)),
     Profile(Scenes.Profile),
+    HuntHistory(Scenes.Profile),
 }
 
 private enum class Stage { Splash, Auth, Main }
@@ -142,7 +144,7 @@ fun GeoSeekRoot() {
                         destination = destination,
                         onNavigate = { destination = it },
                         onImmersiveChange = { immersive = it },
-                        onHuntFinished = { res, found -> updatePlayer(progress.recordHunt(current, res.totalScore, res.totalXpEarned, found)) },
+                        onHuntFinished = { round, res -> updatePlayer(progress.recordHunt(current, round, res)) },
                         onCollect = { obj, xpEarned -> updatePlayer(progress.collect(current, obj, xpEarned)) },
                         onClaimQuest = { reward -> updatePlayer(progress.claimQuest(current, reward)) },
                         onSignOut = {
@@ -207,7 +209,7 @@ private fun MainContent(
     destination: Destination,
     onNavigate: (Destination) -> Unit,
     onImmersiveChange: (Boolean) -> Unit,
-    onHuntFinished: (result: GameScoreResult, found: List<GameObject>) -> Unit,
+    onHuntFinished: (round: HuntRound, result: GameScoreResult) -> Unit,
     onCollect: (GameObject, Int?) -> Unit,
     onClaimQuest: (Int) -> Unit,
     onSignOut: () -> Unit,
@@ -215,7 +217,7 @@ private fun MainContent(
     val goHome = { onNavigate(Destination.Home) }
     BackHandler(enabled = destination != Destination.Home) {
         onImmersiveChange(false)
-        goHome()
+        if (destination == Destination.HuntHistory) onNavigate(Destination.Profile) else goHome()
     }
 
     AnimatedContent(
@@ -239,7 +241,9 @@ private fun MainContent(
             Destination.Explore -> ExploreScreen(player, onBack = goHome, onCollect = onCollect)
             Destination.Collection -> CollectionScreen(player, onBack = goHome)
             Destination.Versus -> VersusScreen(player, onBack = goHome, onFindCards = { onNavigate(Destination.Explore) })
-            Destination.Profile -> ProfileScreen(player, onBack = goHome, onSignOut = onSignOut)
+            Destination.Profile -> ProfileScreen(player, onBack = goHome, onSignOut = onSignOut,
+                onHuntHistory = { onNavigate(Destination.HuntHistory) })
+            Destination.HuntHistory -> HuntHistoryScreen(player, onBack = { onNavigate(Destination.Profile) })
         }
     }
 }
