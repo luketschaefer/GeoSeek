@@ -141,9 +141,11 @@ class ObjectLabelMatcher(
      */
     private fun matchesAlias(label: String, alias: String): Boolean {
         val labelWords = words(label)
-        if (labelWords.joinToString(" ") in notObjects) return false
+        if (labelWords.isEmpty()) return false
+        val fullLabelString = labelWords.joinToString(" ")
+        if (notObjects.any { notObj -> fullLabelString == notObj || fullLabelString.endsWith(" $notObj") }) return false
         val aliasWords = words(alias)
-        if (labelWords.isEmpty() || aliasWords.isEmpty() || aliasWords.size > labelWords.size) return false
+        if (aliasWords.isEmpty() || aliasWords.size > labelWords.size) return false
         return labelWords.takeLast(aliasWords.size) == aliasWords
     }
 

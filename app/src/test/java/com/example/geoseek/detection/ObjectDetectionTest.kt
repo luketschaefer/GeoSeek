@@ -61,10 +61,12 @@ class ObjectDetectionTest {
     @Test
     fun testHotDogIsNotADog() {
         val dogTarget = GameObject("Dog", Rarity.EPIC, 75)
-        val hotDogLabels = listOf(RawLabel("Hot dog", 0.90f))
+        val hotDogLabels = listOf(RawLabel("Hot dog", 0.90f), RawLabel("American hot dog", 0.90f))
 
-        assertNull(matcher.findTargetMatch(dogTarget, hotDogLabels))
-        assertTrue(matcher.findMatches(hotDogLabels).isEmpty())
+        hotDogLabels.forEach { label ->
+            assertNull(matcher.findTargetMatch(dogTarget, listOf(label)))
+            assertTrue(matcher.findMatches(listOf(label)).isEmpty())
+        }
     }
 
     @Test
