@@ -22,4 +22,6 @@ data class Card(
     val xpValue: Int,
     val dateCollectedMillis: Long = System.currentTimeMillis(),
     val isNewDiscovery: Boolean = true,
-)
+) {
+    val cardType: CardType get() = obj.cardType
+}

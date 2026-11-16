@@ -145,6 +145,9 @@ class ScreensUiTest {
         )
 
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, activityInfo.screenOrientation)
+    }
+
+    @Test
     fun cameraScan_disposalStopsBitDefendersThemePlayback() {
         val cameraVisible = mutableStateOf(true)
         compose.setContent {

@@ -31,4 +31,6 @@ data class GameObject(
     val points: Int,
     val habitats: Set<Habitat> = Habitat.entries.toSet(),
     val needsCustomModel: Boolean = false,
-)
+) {
+    val cardType: CardType get() = CardType.fromLabel(name)
+}
