@@ -120,6 +120,7 @@ app/src/main/java/com/example/geoseek/
 │   ├── DailyQuests.kt            Daily quest rotation and goal types
 │   ├── HuntRound.kt              Active hunt session orchestrator & countdown timer
 │   ├── HuntTargets.kt            Picks hunt targets for an environment's habitat
+│   ├── SuggestedFinds.kt         Suggests the next cards to look for from what's missing in the binder
 │   └── modes/
 │       ├── CollectionMode.kt     Untimed free-look discovery & card collecting strategy
 │       └── TimedHuntMode.kt      Timed hunt strategy with speed bonus scoring

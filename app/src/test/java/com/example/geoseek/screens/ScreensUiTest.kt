@@ -21,6 +21,8 @@ import com.example.geoseek.data.CardRecord
 import com.example.geoseek.data.DailyProgress
 import com.example.geoseek.data.Player
 import com.example.geoseek.engine.questForDay
+import com.example.geoseek.engine.suggestedFinds
+import com.example.geoseek.models.OBJECT_LIST
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -125,6 +127,36 @@ class ScreensUiTest {
         }
 
         text("Claimed. New quest tomorrow.").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_suggestsCardsThePlayerDoesNotHaveYet() {
+        val binder = mapOf("Chair" to CardRecord(1, 0L))
+        val expected = suggestedFinds(binder.keys, customModelAvailable = false)
+        compose.setContent { HomeScreen(player(binder = binder), onOpen = {}, onClaimQuest = {}) }
+
+        text("SUGGESTED FINDS").assertIsDisplayed()
+        expected.forEach { text(it.name).assertIsDisplayed() }
+        assertEquals(0, compose.onAllNodesWithText("Chair").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun home_goLookOpensFreeLook() {
+        var opened: Destination? = null
+        compose.setContent { HomeScreen(player(), onOpen = { opened = it }, onClaimQuest = {}) }
+
+        text("Go Look").performClick()
+
+        compose.runOnIdle { assertEquals(Destination.Explore, opened) }
+    }
+
+    @Test
+    fun home_completeBinderHasNothingLeftToSuggest() {
+        val binder = OBJECT_LIST.associate { it.name to CardRecord(1, 0L) }
+        compose.setContent { HomeScreen(player(binder = binder), onOpen = {}, onClaimQuest = {}) }
+
+        text("Nothing left to suggest. You have every card you can find.").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Go Look").fetchSemanticsNodes().size)
     }
 
     @Test
