@@ -23,6 +23,7 @@ class HuntRound(
     val targets: List<GameObject>,
     val durationSeconds: Int = 60,
     val mode: GameMode = TimedHuntMode(timeLimitSeconds = durationSeconds),
+    val allowTapFinds: Boolean = false,
 ) {
     /** Stable identity for a round, so repeated finish callbacks cannot save its rewards twice. */
     val id: String = UUID.randomUUID().toString()
@@ -60,7 +61,10 @@ class HuntRound(
      * @param obj The [GameObject] detected by vision analysis.
      * @return [GameRuleOutcome] containing points earned and card rewards.
      */
-    fun onObjectFound(obj: GameObject): GameRuleOutcome {
+    fun onObjectFound(obj: GameObject, source: FindSource = FindSource.CAMERA): GameRuleOutcome {
+        if (source == FindSource.TAP && !allowTapFinds) {
+            return GameRuleOutcome(result = ObjectFindResult.TAP_DISABLED, pointsEarned = 0)
+        }
         val outcome = mode.evaluateFoundObject(obj, state)
         state.status = mode.evaluateGameStatus(state)
         return outcome

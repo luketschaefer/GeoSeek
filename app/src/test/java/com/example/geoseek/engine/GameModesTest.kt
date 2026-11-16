@@ -121,5 +121,28 @@ class GameModesTest {
         assertEquals(xpFor(emptySet()) - 20, xpFor(setOf("Chair")))
     }
 
+    @Test
+    fun testTapFindRejectedByDefault() {
+        val round = HuntRound("Garage", targetList, 60)
+        val outcome = round.onObjectFound(chair, FindSource.TAP)
+        assertEquals(ObjectFindResult.TAP_DISABLED, outcome.result)
+        assertEquals(0, round.score)
+        assertEquals(0, round.found.size)
+    }
 
+    @Test
+    fun testTapFindAcceptedInDebugMode() {
+        val round = HuntRound("Garage", targetList, 60, allowTapFinds = true)
+        val outcome = round.onObjectFound(chair, FindSource.TAP)
+        assertEquals(ObjectFindResult.ACCEPTED, outcome.result)
+        assertEquals(10, round.score)
+    }
+
+    @Test
+    fun testCameraFindAcceptedWhenTapDisabled() {
+        val round = HuntRound("Garage", targetList, 60)
+        val outcome = round.onObjectFound(chair, FindSource.CAMERA)
+        assertEquals(ObjectFindResult.ACCEPTED, outcome.result)
+        assertEquals(10, round.score)
+    }
 }

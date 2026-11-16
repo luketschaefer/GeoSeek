@@ -20,6 +20,13 @@ enum class ObjectFindResult {
     ACCEPTED,
     DUPLICATE,
     WRONG_TARGET,
+    TAP_DISABLED,
+}
+
+/** Where a find came from: the camera detector, or a tap on a target button (debug only). */
+enum class FindSource {
+    CAMERA,
+    TAP,
 }
 
 /**

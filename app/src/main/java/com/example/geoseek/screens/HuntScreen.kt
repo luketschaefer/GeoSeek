@@ -1,7 +1,8 @@
 // Hunt screen: select environment area, race the clock to find targets, and earn time bonus rewards.
-// Finds come from the camera (ObjectDetector); tapping a target also marks it found, for testing.
+// Finds come from the camera (ObjectDetector); to say tapping works only when DebugSettings.TAP_TO_FIND is on.
 package com.example.geoseek.screens
-
+import com.example.geoseek.engine.DebugSettings
+import com.example.geoseek.engine.FindSource
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
@@ -110,7 +111,7 @@ fun HuntScreen(
         val env = ENVIRONMENTS[selectedEnv]
         val modeInstance = TimedHuntMode(timeLimitSeconds = env.durationSeconds, ownedCardNames = player.cards)
         val targets = pickHuntTargets(env.habitat, env.targetCount, customModelAvailable)
-        round = HuntRound(env.name, targets, env.durationSeconds, modeInstance)
+        round = HuntRound(env.name, targets, env.durationSeconds, modeInstance, allowTapFinds = DebugSettings.TAP_TO_FIND)
         found.clear()
         score = 0
         lastOutcome = null
@@ -129,10 +130,10 @@ fun HuntScreen(
         onHuntFinished(r, final)
     }
 
-    fun find(obj: GameObject) {
+    fun find(obj: GameObject, source: FindSource) {
         val r = round ?: return
         if (phase != HuntPhase.Active) return
-        val outcome = r.onObjectFound(obj)
+        val outcome = r.onObjectFound(obj, source)
         if (outcome.result != ObjectFindResult.ACCEPTED) return
         found += obj
         score = r.score
@@ -178,7 +179,13 @@ fun HuntScreen(
                 // The countdown keeps running while it animates out, so backing out at "GO!" mustn't start the hunt.
                 HuntPhase.Countdown -> Countdown { if (phase == HuntPhase.Countdown) phase = HuntPhase.Active }
                 HuntPhase.Active -> round?.let { r ->
-                    ActiveHunt(r, found, score, secondsLeft, accent, lastOutcome, onFind = ::find, onEnd = ::finish)
+                    ActiveHunt(
+                        r, found, score, secondsLeft, accent, lastOutcome,
+                        onFind = { find(it, FindSource.CAMERA) },
+                        onTapFind = { find(it, FindSource.TAP) },
+
+                        onEnd = ::finish,
+                    )
                 }
                 HuntPhase.Results -> {
                     val r = round
@@ -295,6 +302,7 @@ private fun ActiveHunt(
     accent: Color,
     lastOutcome: Pair<GameObject, GameRuleOutcome>?,
     onFind: (GameObject) -> Unit,
+    onTapFind: (GameObject) -> Unit,
     onEnd: () -> Unit,
 ) {
     val shownScore by animateIntAsState(score, tween(500), label = "score")
@@ -340,7 +348,7 @@ private fun ActiveHunt(
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             round.targets.forEach { obj ->
-                TargetSlot(obj, obj in found, Modifier.weight(1f)) { onFind(obj) }
+                TargetSlot(obj, obj in found, Modifier.weight(1f), tappable = DebugSettings.TAP_TO_FIND) { onTapFind(obj) }
             }
         }
         Spacer(Modifier.height(14.dp))
@@ -349,7 +357,7 @@ private fun ActiveHunt(
 }
 
 @Composable
-private fun TargetSlot(obj: GameObject, isFound: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun TargetSlot(obj: GameObject, isFound: Boolean, modifier: Modifier = Modifier, tappable: Boolean = false, onClick: () -> Unit) {
     val color = rarityColor(obj.rarity)
     val pop = remember { Animatable(1f) }
     LaunchedEffect(isFound) {
@@ -362,7 +370,7 @@ private fun TargetSlot(obj: GameObject, isFound: Boolean, modifier: Modifier = M
         modifier
             .graphicsLayer { scaleX = pop.value; scaleY = pop.value }
             .slot(border = if (isFound) GeoColors.Success else color.copy(alpha = 0.8f), fill = if (isFound) Color(0xC0244A2E) else GeoColors.Slot)
-            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+            .clickable(remember { MutableInteractionSource() }, indication = null, enabled = tappable, onClick = onClick)
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
