@@ -19,6 +19,13 @@ internal class PlayerPrefs(val prefs: SharedPreferences, private val clock: Dail
 
     fun exists(username: String) = prefs.contains(key(username, "hash"))
 
+    fun isDarkMode(default: Boolean = true): Boolean =
+        prefs.getBoolean(KEY_DARK_MODE, default)
+
+    fun setDarkMode(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DARK_MODE, enabled).apply()
+    }
+
     fun load(username: String, day: Int = today()): Player? {
         val display = prefs.getString(key(username, "display"), null) ?: return null
         migrateDailyProgress(username, day)
@@ -81,6 +88,7 @@ internal class PlayerPrefs(val prefs: SharedPreferences, private val clock: Dail
     companion object {
         // Kept from when accounts were the only thing stored, so existing players keep their progress.
         private const val FILE = "geoseek_auth"
+        private const val KEY_DARK_MODE = "setting.dark_mode"
 
         fun from(context: Context): PlayerPrefs {
             val app = context.applicationContext
