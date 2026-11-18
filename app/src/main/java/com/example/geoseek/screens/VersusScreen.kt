@@ -359,6 +359,7 @@ private fun CardTypeBadge(
     }
 }
 
+@Composable
 private fun cardTypeColor(type: CardType): Color = when (type) {
     CardType.TECH -> Color(0xFF5AA2FF)
     CardType.NATURE -> GeoColors.Success

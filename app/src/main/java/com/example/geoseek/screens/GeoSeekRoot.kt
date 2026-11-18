@@ -59,7 +59,7 @@ enum class Destination(val scene: Scene) {
     Hunt(Scenes.Hunt),
     Explore(Scenes.Explore),
     Collection(Scenes.Collection),
-    Versus(Scenes.Hunt.copy(accent = GeoColors.Danger)),
+    Versus(Scenes.Hunt.copy(accent = DarkGeoColorScheme.danger)),
     Profile(Scenes.Profile),
     HuntHistory(Scenes.Profile),
 }

@@ -97,6 +97,7 @@ fun DetectionOverlay(result: DetectionResult, accent: Color, modifier: Modifier 
     val pulse by rememberInfiniteTransition(label = "glow")
         .animateFloat(0.55f, 1f, infiniteRepeatable(tween(520), RepeatMode.Reverse), label = "glowPulse")
 
+    val successColor = GeoColors.Success
     Canvas(modifier) {
         val iw = result.imageWidth.toFloat()
         val ih = result.imageHeight.toFloat()
@@ -126,7 +127,7 @@ fun DetectionOverlay(result: DetectionResult, accent: Color, modifier: Modifier 
         }
 
         if (held != null) {
-            val color = if (identified) GeoColors.Success else accent
+            val color = if (identified) successColor else accent
             val outline = roundedOutline(held, radius)
             val settle = lockIn.value
             drawPath(outline, color.copy(alpha = 0.3f * settle.coerceIn(0f, 1f)), style = Stroke(2.dp.toPx()))

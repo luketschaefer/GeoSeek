@@ -155,15 +155,17 @@ fun pixelPath(l: Float, t: Float, r: Float, b: Float, s: Float): Path = Path().a
 }
 
 /** The game's panel look: translucent fill, a dark outer edge, and a lighter inner border. */
+@Composable
 fun Modifier.pixelPanel(
     fill: Color = GeoColors.Panel,
     border: Color = GeoColors.PanelBorder,
     step: Dp = 4.dp,
+    edge: Color = GeoColors.PanelEdge,
 ): Modifier = drawBehind {
     val s = step.toPx()
     val e = 2.dp.toPx()
     drawPath(pixelPath(0f, 0f, size.width, size.height, s), fill)
-    drawPath(pixelPath(0f, 0f, size.width, size.height, s), GeoColors.PanelEdge, style = Stroke(e * 2))
+    drawPath(pixelPath(0f, 0f, size.width, size.height, s), edge, style = Stroke(e * 2))
     drawPath(pixelPath(e * 1.5f, e * 1.5f, size.width - e * 1.5f, size.height - e * 1.5f, s * 0.75f), border, style = Stroke(e))
     // A one-pixel shine along the top, like light catching the frame.
     drawRect(Color.White.copy(alpha = 0.10f), Offset(2 * s, e * 2.5f), Size(size.width - 4 * s, e))
@@ -364,9 +366,10 @@ fun GeoTextField(
 @Composable
 fun PixelBar(progress: Float, color: Color, modifier: Modifier = Modifier, segments: Int = 20) {
     val animated by animateFloatAsState(progress.coerceIn(0f, 1f), spring(0.8f, Spring.StiffnessLow), label = "bar")
+    val panelEdge = GeoColors.PanelEdge
     Canvas(modifier.height(14.dp)) {
         val e = 2.dp.toPx()
-        drawRect(GeoColors.PanelEdge)
+        drawRect(panelEdge)
         drawRect(Color(0xFF1A1F45), Offset(e, e), Size(size.width - 2 * e, size.height - 2 * e))
         val gap = 1.5.dp.toPx()
         val inner = size.width - 2 * e
@@ -383,6 +386,7 @@ fun PixelBar(progress: Float, color: Color, modifier: Modifier = Modifier, segme
 }
 
 /** A square inventory-style slot. */
+@Composable
 fun Modifier.slot(border: Color = GeoColors.SlotBorder, fill: Color = GeoColors.Slot): Modifier =
     pixelPanel(fill, border, step = 3.dp)
 
