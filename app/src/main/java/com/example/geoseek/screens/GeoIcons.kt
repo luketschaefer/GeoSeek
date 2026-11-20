@@ -122,6 +122,23 @@ object Icons {
             "XXXXXXXXXX",
         ),
     )
+    val Gear = Sprite(
+        listOf(
+            "....XXXXX....",
+            "....X...X....",
+            "..XXX...XXX..",
+            ".X..XXXXX..X.",
+            ".X.XX...XX.X.",
+            ".X.X.....X.X.",
+            "XXXX.....XXXX",
+            ".X.X.....X.X.",
+            ".X.XX...XX.X.",
+            ".X..XXXXX..X.",
+            "..XXX...XXX..",
+            "....X...X....",
+            "....XXXXX....",
+        ),
+    )
     val Back = Sprite(
         listOf(
             "...X....",
