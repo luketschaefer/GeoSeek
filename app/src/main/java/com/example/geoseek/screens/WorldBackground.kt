@@ -63,8 +63,23 @@ private class WorldState {
     }
 }
 
+fun effectiveTimeOfDay(tod: Float, isDarkMode: Boolean): Float {
+    val day = sample(DAY_KEYS, DAY_LIGHT, tod)
+    val isNight = day < 0.5f
+    return when {
+        isDarkMode && !isNight -> (tod + 0.5f) % 1f
+        !isDarkMode && isNight -> (tod + 0.5f) % 1f
+        else -> tod
+    }
+}
+
 @Composable
-fun WorldBackground(scene: Scene, modifier: Modifier = Modifier, dim: Float = 0f) {
+fun WorldBackground(
+    scene: Scene,
+    modifier: Modifier = Modifier,
+    dim: Float = 0f,
+    isDarkMode: Boolean = LocalDarkMode.current,
+) {
     val world = remember { WorldState() }
     val currentScene by rememberUpdatedState(scene)
 
@@ -90,7 +105,7 @@ fun WorldBackground(scene: Scene, modifier: Modifier = Modifier, dim: Float = 0f
     Canvas(modifier) {
         val cell = size.width / COLS
         val rows = size.height / cell
-        val t = world.tod
+        val t = effectiveTimeOfDay(world.tod, isDarkMode)
         val cam = world.cam
         val clock = world.clock
         val day = sample(DAY_KEYS, DAY_LIGHT, t)
