@@ -468,4 +468,76 @@ fun LevelUpOverlay(
     }
 }
 
+/** Settings overlay for toggling options like Dark Mode / Light Mode. */
+@Composable
+fun SettingsOverlay(
+    isDarkMode: Boolean,
+    onToggleDarkMode: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(onBack = onDismiss)
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xD903051A))
+            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onDismiss)
+            .padding(28.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Panel(
+            Modifier
+                .widthIn(max = 420.dp)
+                .fillMaxWidth()
+                .clickable(remember { MutableInteractionSource() }, indication = null) {},
+            fill = GeoColors.PanelDeep,
+            border = GeoColors.PanelBorder,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    PixelSprite(Icons.Gear, Modifier.size(26.dp), tint = GeoColors.Highlight)
+                    Spacer(Modifier.width(10.dp))
+                    OutlinedText("SETTINGS", GeoType.Display, color = GeoColors.Highlight, outlineWidth = 4.dp)
+                }
+                Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .slot()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        OutlinedText("Theme Mode", GeoType.Heading, outlineWidth = 2.5.dp)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            if (isDarkMode) "Dark Mode (Moon & Stars)" else "Light Mode (Daylight & Sun)",
+                            style = GeoType.Caption,
+                            color = GeoColors.TextSoft,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    PixelButton(
+                        text = if (isDarkMode) "Dark" else "Light",
+                        onClick = { onToggleDarkMode(!isDarkMode) },
+                        color = if (isDarkMode) GeoColors.PanelBorder else GeoColors.Highlight,
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
+                PixelButton(
+                    text = "Close",
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = GeoColors.TextSoft,
+                    icon = Icons.Check,
+                )
+            }
+        }
+    }
+}
+
 fun lerpColor(a: Color, b: Color, f: Float): Color = androidx.compose.ui.graphics.lerp(a, b, f)
