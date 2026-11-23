@@ -86,6 +86,7 @@ data class DuelState(
     val recoveries: Int = 2,
     val turn: Int = 1,
     val statusMessage: String = "",
+    val awaitingOpponent: Boolean = false,
 ) {
     init {
         require(playerDeck.isNotEmpty()) { "Player deck must contain at least one card." }
@@ -108,73 +109,57 @@ data class DuelState(
 
     val finished: Boolean get() = outcome != DuelOutcome.IN_PROGRESS
 
-    /** Player attacks first; an undefeated rival then attacks the player's active card. */
-    fun play(recover: Boolean = false): DuelState {
-        if (finished || (recover && recoveries == 0)) return this
-
-        var next = this
-        val messages = mutableListOf<String>()
+    /** Resolves only the player's action so the UI can show its hit before the rival responds. */
+    fun playerAction(recover: Boolean = false, swapTo: Int? = null): DuelState {
+        if (finished || awaitingOpponent || (recover && recoveries == 0)) return this
+        if (swapTo != null) {
+            if (swapTo !in playerDeck.indices || swapTo == playerActiveIndex || playerDeck[swapTo].isKnockedOut) return this
+            return copy(
+                playerActiveIndex = swapTo,
+                awaitingOpponent = true,
+                statusMessage = "Swapped to ${playerDeck[swapTo].name}!",
+            )
+        }
         if (recover) {
             val active = playerActiveCard
-            val healed = active.copy(currentHp = (active.currentHp + 20).coerceAtMost(active.maxHp))
-            next = copy(playerDeck = playerDeck.updated(playerActiveIndex, healed))
-            messages += "Recovered up to 20 HP."
-        } else {
-            val hit = attack(next.playerDeck, next.playerActiveIndex, next.rivalDeck, next.rivalActiveIndex)
-            next = next.copy(
-                rivalDeck = hit.defenderDeck,
-                rivalActiveIndex = hit.defenderIndex,
+            return copy(
+                playerDeck = playerDeck.updated(playerActiveIndex, active.copy(currentHp = (active.currentHp + 20).coerceAtMost(active.maxHp))),
+                recoveries = recoveries - 1,
+                awaitingOpponent = true,
+                statusMessage = "Recovered up to 20 HP.",
             )
-            messages += "${hit.effectiveness}: You dealt ${hit.damage} damage."
-            if (hit.knockedOut) messages += "${hit.defenderName} was knocked out."
         }
-
-        if (next.rivalDeck.any { !it.isKnockedOut } && next.playerDeck.any { !it.isKnockedOut }) {
-            val hit = attack(next.rivalDeck, next.rivalActiveIndex, next.playerDeck, next.playerActiveIndex)
-            next = next.copy(
-                playerDeck = hit.defenderDeck,
-                playerActiveIndex = hit.defenderIndex,
-            )
-            messages += "${hit.effectiveness}: Enemy attacked for ${hit.damage} damage."
-            if (hit.knockedOut) messages += "Your ${hit.defenderName} was knocked out."
-        }
-
-        return next.copy(
-            recoveries = recoveries - if (recover) 1 else 0,
-            turn = turn + 1,
-            statusMessage = messages.joinToString(" "),
+        val hit = attack(playerDeck, playerActiveIndex, rivalDeck, rivalActiveIndex)
+        return copy(
+            rivalDeck = hit.defenderDeck,
+            rivalActiveIndex = hit.defenderIndex,
+            awaitingOpponent = true,
+            statusMessage = "${hit.effectiveness}: You dealt ${hit.damage} damage." +
+                if (hit.knockedOut) " ${hit.defenderName} was knocked out." else "",
         )
     }
 
-    /** A valid switch consumes the player's action, then the active rival attacks immediately. */
-    fun swapCard(targetIndex: Int): DuelState {
-        if (
-            finished ||
-            targetIndex !in playerDeck.indices ||
-            targetIndex == playerActiveIndex ||
-            playerDeck[targetIndex].currentHp <= 0
-        ) {
-            return this
-        }
-
-        val swapped = copy(playerActiveIndex = targetIndex)
-        if (swapped.rivalDeck.all { it.isKnockedOut }) {
-            return swapped.copy(turn = turn + 1, statusMessage = "Swapped to ${swapped.playerActiveCard.name}!")
-        }
-
-        val hit = attack(swapped.rivalDeck, swapped.rivalActiveIndex, swapped.playerDeck, swapped.playerActiveIndex)
-        val summary = buildString {
-            append("Swapped to ${swapped.playerActiveCard.name}! ")
-            append("${hit.effectiveness}: Enemy attacked for ${hit.damage} damage.")
-            if (hit.knockedOut) append(" Your ${hit.defenderName} was knocked out.")
-        }
-        return swapped.copy(
+    /** Completes a pending turn exactly once. A defeated rival cannot attack. */
+    fun opponentTurn(): DuelState {
+        if (!awaitingOpponent) return this
+        if (finished) return copy(awaitingOpponent = false, turn = turn + 1)
+        val hit = attack(rivalDeck, rivalActiveIndex, playerDeck, playerActiveIndex)
+        return copy(
             playerDeck = hit.defenderDeck,
             playerActiveIndex = hit.defenderIndex,
+            awaitingOpponent = false,
             turn = turn + 1,
-            statusMessage = summary,
+            statusMessage = statusMessage + " ${hit.effectiveness}: Enemy attacked for ${hit.damage} damage." +
+                if (hit.knockedOut) " Your ${hit.defenderName} was knocked out." else "",
         )
     }
+
+    /** Convenience for callers that do not need animated turn presentation. */
+    fun play(recover: Boolean = false): DuelState =
+        if (awaitingOpponent) this else playerAction(recover).opponentTurn()
+
+    fun swapCard(targetIndex: Int): DuelState =
+        if (awaitingOpponent) this else playerAction(swapTo = targetIndex).opponentTurn()
 
     private data class AttackResult(
         val defenderDeck: List<DuelCard>,

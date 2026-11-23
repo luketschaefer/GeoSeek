@@ -23,6 +23,63 @@ class CardDuelTest {
         Card(obj = GameObject(name, rarity, points), xpValue = 0)
 
     @Test
+    fun playerHitIsVisibleBeforeOpponentDealsDamage() {
+        val initial = DuelState(listOf(card("Player")), listOf(card("Rival")))
+        val playerHit = initial.playerAction()
+        assertEquals(60, playerHit.playerActiveCard.currentHp)
+        assertEquals(45, playerHit.rivalActiveCard.currentHp)
+        assertEquals(1, playerHit.turn)
+        assertTrue(playerHit.awaitingOpponent)
+        assertSame(playerHit, playerHit.playerAction())
+        assertSame(playerHit, playerHit.playerAction(swapTo = 0))
+
+        val response = playerHit.opponentTurn()
+        assertEquals(45, response.playerActiveCard.currentHp)
+        assertEquals(45, response.rivalActiveCard.currentHp)
+        assertEquals(2, response.turn)
+        assertFalse(response.awaitingOpponent)
+        assertSame(response, response.opponentTurn())
+    }
+
+    @Test
+    fun animatedFinalKnockoutNeverReceivesAnOpponentHit() {
+        val initial = DuelState(listOf(card("Player")), listOf(card("Rival", hp = 10)))
+        val hit = initial.playerAction()
+        assertEquals(DuelOutcome.VICTORY, hit.outcome)
+        assertEquals(60, hit.opponentTurn().playerActiveCard.currentHp)
+    }
+
+    @Test
+    fun exactLethalDamageWins() {
+        val initial = DuelState(
+            playerDeck = listOf(card("Player", hp = 60, attack = 15)),
+            rivalDeck = listOf(card("Rival", hp = 15)),
+        )
+
+        val afterAttack = initial.playerAction()
+        assertEquals(0, afterAttack.rivalActiveCard.currentHp)
+        assertEquals(DuelOutcome.VICTORY, afterAttack.outcome)
+
+        val afterResponse = afterAttack.opponentTurn()
+        assertEquals(60, afterResponse.playerActiveCard.currentHp)
+        assertEquals(DuelOutcome.VICTORY, afterResponse.outcome)
+    }
+
+    @Test
+    fun recoveryAndSwapResolveBeforeOpponentResponse() {
+        val initial = DuelState(
+            listOf(card("Player").copy(currentHp = 20), card("Backup")),
+            listOf(card("Rival")),
+        )
+        val healed = initial.playerAction(recover = true)
+        assertEquals(40, healed.playerActiveCard.currentHp)
+        assertEquals(25, healed.opponentTurn().playerActiveCard.currentHp)
+        val swapped = initial.playerAction(swapTo = 1)
+        assertEquals(60, swapped.playerActiveCard.currentHp)
+        assertEquals(45, swapped.opponentTurn().playerActiveCard.currentHp)
+    }
+
+    @Test
     fun neutralStrikeDamagesBothActiveCards() {
         val state = DuelState(listOf(card("Player")), listOf(card("Rival")))
         val next = state.play()

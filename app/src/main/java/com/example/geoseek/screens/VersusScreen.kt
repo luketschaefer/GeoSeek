@@ -1,6 +1,8 @@
 package com.example.geoseek.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +27,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -50,6 +55,7 @@ import com.example.geoseek.models.Card
 import com.example.geoseek.models.CardType
 import com.example.geoseek.models.GameObject
 import com.example.geoseek.models.OBJECT_LIST
+import kotlinx.coroutines.delay
 
 /** Card selection and a local, turn-based practice arena using only the player's discoveries. */
 @Composable
@@ -213,8 +219,60 @@ private fun DuelArena(deck: List<GameObject>, matchRarity: Boolean, onBack: () -
     var state by remember(deck) { mutableStateOf(initialState) }
     val accent = GeoColors.Danger
 
-    fun play(recover: Boolean) {
-        state = state.play(recover)
+    // A queued action immediately locks the controls, including rapid taps before recomposition.
+    var action by remember(deck) { mutableStateOf<Int?>(null) }
+    var phase by remember(deck) { mutableStateOf("Your turn") }
+    val playerLunge = remember { Animatable(0f) }
+    val rivalLunge = remember { Animatable(0f) }
+    val playerHit = remember { Animatable(0f) }
+    val rivalHit = remember { Animatable(0f) }
+    val lungeDistance = with(LocalDensity.current) { 24.dp.toPx() }
+    val busy = action != null
+
+    fun queueAction(value: Int) {
+        if (action == null && !state.finished) action = value
+    }
+
+    LaunchedEffect(action) {
+        val selectedAction = action ?: return@LaunchedEffect
+        val bench = state.playerDeck.indices.firstOrNull { it != state.playerActiveIndex }
+        try {
+            phase = when (selectedAction) {
+                0 -> "Your attack!"
+                1 -> "Recovering…"
+                else -> "Switching cards…"
+            }
+            if (selectedAction == 0) playerLunge.animateTo(lungeDistance, tween(180))
+            else delay(250)
+            val next = state.playerAction(recover = selectedAction == 1, swapTo = if (selectedAction == 2) bench else null)
+            if (next == state) return@LaunchedEffect
+            state = next
+            if (selectedAction == 0) {
+                rivalHit.snapTo(1f)
+                playerLunge.animateTo(0f, tween(180))
+                rivalHit.animateTo(0f, tween(220))
+            }
+            // Keep the player's damage/result visible before starting the rival animation.
+            delay(650)
+            if (!state.finished) {
+                phase = "Opponent's attack!"
+                rivalLunge.animateTo(-lungeDistance, tween(180))
+                state = state.opponentTurn()
+                playerHit.snapTo(1f)
+                rivalLunge.animateTo(0f, tween(180))
+                playerHit.animateTo(0f, tween(220))
+                delay(450)
+            } else {
+                state = state.opponentTurn()
+            }
+        } finally {
+            playerLunge.snapTo(0f)
+            rivalLunge.snapTo(0f)
+            playerHit.snapTo(0f)
+            rivalHit.snapTo(0f)
+            phase = "Your turn"
+            action = null
+        }
     }
 
     Column(
@@ -244,11 +302,21 @@ private fun DuelArena(deck: List<GameObject>, matchRarity: Boolean, onBack: () -
             BattleCard(
                 playerCard, "YOU", state.playerActiveCard.currentHp, state.playerActiveCard.maxHp,
                 GeoColors.Success, Modifier.weight(1f), playerTypeHighlight,
+                cardMotion = Modifier.graphicsLayer {
+                    translationX = playerLunge.value
+                    alpha = 1f - playerHit.value * 0.55f
+                    rotationZ = playerHit.value * -4f
+                },
             )
             OutlinedText("VS", GeoType.Heading, color = accent)
             BattleCard(
                 rivalCard, "COMPUTER", state.rivalActiveCard.currentHp, state.rivalActiveCard.maxHp,
                 accent, Modifier.weight(1f), null,
+                cardMotion = Modifier.graphicsLayer {
+                    translationX = rivalLunge.value
+                    alpha = 1f - rivalHit.value * 0.55f
+                    rotationZ = rivalHit.value * 4f
+                },
             )
         }
         TypeMatchupStatus(state.playerActiveCard.cardType, state.rivalActiveCard.cardType)
@@ -281,27 +349,28 @@ private fun DuelArena(deck: List<GameObject>, matchRarity: Boolean, onBack: () -
                 )
                 Text(state.statusMessage.ifEmpty { "Your move! Strike, recover, or switch cards." },
                     style = GeoType.Body, color = GeoColors.TextSoft)
-                if (!state.finished) {
+                if (!state.finished || busy) Text(phase, style = GeoType.Label, color = GeoColors.Gold)
+                if (!state.finished || busy) {
                     val playerBenchIndex = state.playerDeck.indices.firstOrNull { it != state.playerActiveIndex }
                     val canSwap = playerBenchIndex?.let { state.playerDeck[it].currentHp > 0 } == true
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        PixelButton("Attack", { play(false) }, Modifier.weight(1f), color = accent)
+                        PixelButton("Attack", { queueAction(0) }, Modifier.weight(1f), color = accent, enabled = !busy && !state.finished)
                         PixelButton(
                             "Recover",
-                            { play(true) },
+                            { queueAction(1) },
                             Modifier.weight(1f),
                             color = GeoColors.Success,
-                            enabled = state.recoveries > 0 && state.playerActiveCard.currentHp < state.playerActiveCard.maxHp,
+                            enabled = !busy && !state.finished && state.recoveries > 0 && state.playerActiveCard.currentHp < state.playerActiveCard.maxHp,
                         )
                         PixelButton(
                             "Swap",
-                            { playerBenchIndex?.let { state = state.swapCard(it) } },
+                            { queueAction(2) },
                             Modifier.weight(1f),
                             color = GeoColors.Gold,
-                            enabled = canSwap,
+                            enabled = !busy && !state.finished && canSwap,
                         )
                     }
                     Text("You act first, then the rival attacks. Recovery and switching use your turn.",
@@ -322,6 +391,7 @@ private fun DuelArena(deck: List<GameObject>, matchRarity: Boolean, onBack: () -
 private fun BattleCard(
     card: GameObject, owner: String, health: Int, maxHealth: Int,
     accent: Color, modifier: Modifier = Modifier, typeHighlight: Color? = null,
+    cardMotion: Modifier = Modifier,
 ) {
     val stats = card.duelStats()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -330,7 +400,7 @@ private fun BattleCard(
             CardTypeBadge(card.cardType, compact = true, highlight = typeHighlight)
             Text(rarityLabel(card.rarity), style = GeoType.Caption.copy(fontSize = 10.sp), color = rarityColor(card.rarity))
         }
-        TradingCard(card, discovered = true, modifier = Modifier.fillMaxWidth())
+        TradingCard(card, discovered = true, modifier = Modifier.fillMaxWidth().then(cardMotion))
         PixelBar(health / maxHealth.toFloat(), accent, Modifier.fillMaxWidth())
         Text("$health/$maxHealth HP • ${stats.attack} ATK", style = GeoType.Caption, color = GeoColors.TextSoft)
     }
