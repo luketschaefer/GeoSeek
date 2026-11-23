@@ -2,7 +2,6 @@ package com.example.geoseek.screens
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -37,6 +36,12 @@ class VersusDeckUiTest {
     )
 
     private fun text(value: String) = compose.onAllNodesWithText(value).onFirst()
+
+    private fun finishAnimatedTurn() {
+        // Advance Compose's virtual clock through the action, pause, and counterattack.
+        compose.mainClock.advanceTimeBy(3_000L)
+        compose.waitForIdle()
+    }
 
     @Test
     fun rarityToggleControlsOpponentGenerationMode() {
@@ -73,9 +78,13 @@ class VersusDeckUiTest {
         text("YOUR BENCH").assertIsDisplayed()
         text("OPPONENT BENCH").assertIsDisplayed()
         text("Swap").performClick()
+        finishAnimatedTurn()
         compose.onAllNodesWithText("Swapped to AirPods!", substring = true).onFirst().assertIsDisplayed()
 
-        repeat(3) { text("Attack").performClick() }
+        repeat(3) {
+            text("Attack").performClick()
+            finishAnimatedTurn()
+        }
 
         text("KO").assertIsDisplayed()
         text("Swap").assertIsNotEnabled()
@@ -91,6 +100,7 @@ class VersusDeckUiTest {
         text("Plant").performClick()
         text("Start Battle").performClick()
         text("Swap").performClick()
+        finishAnimatedTurn()
 
         compose.onAllNodesWithText("Swapped to Plant!", substring = true).onFirst().assertIsDisplayed()
     }
