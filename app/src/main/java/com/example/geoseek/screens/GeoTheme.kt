@@ -1,6 +1,9 @@
-// Colors, text styles, rarity colors, and the per-mode scenes that steer the pixel world behind every screen.
+// Colors, text styles, rarity colors, light and dark color schemes, and the per-mode scenes that steer the pixel world behind every screen.
 package com.example.geoseek.screens
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -8,26 +11,124 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.geoseek.models.Rarity
 
+data class GeoColorScheme(
+    val isDark: Boolean,
+    val night: Color,
+    val text: Color,
+    val textSoft: Color,
+    val textMuted: Color,
+    val outline: Color,
+    val highlight: Color,
+    val panel: Color,
+    val panelDeep: Color,
+    val panelBorder: Color,
+    val panelEdge: Color,
+    val slot: Color,
+    val slotBorder: Color,
+    val danger: Color,
+    val success: Color,
+    val gold: Color,
+)
+
+val DarkGeoColorScheme = GeoColorScheme(
+    isDark = true,
+    night = Color(0xFF070A1F),
+    text = Color(0xFFFFFFFF),
+    textSoft = Color(0xFFD7DCF4),
+    textMuted = Color(0xFF98A2CC),
+    outline = Color(0xFF0A0A12),
+    highlight = Color(0xFFFFE45C),
+    panel = Color(0xD8192157),
+    panelDeep = Color(0xEB0F1440),
+    panelBorder = Color(0xFF4A5BC0),
+    panelEdge = Color(0xFF080B26),
+    slot = Color(0xC0283A8F),
+    slotBorder = Color(0xFF6577DA),
+    danger = Color(0xFFFF5D5D),
+    success = Color(0xFF7BEA6E),
+    gold = Color(0xFFFFD34D),
+)
+
+val LightGeoColorScheme = GeoColorScheme(
+    isDark = false,
+    night = Color(0xFFDCE5F7),
+    text = Color(0xFF101530),
+    textSoft = Color(0xFF2C3663),
+    textMuted = Color(0xFF556299),
+    outline = Color(0xFFFFFFFF),
+    highlight = Color(0xFFD69900),
+    panel = Color(0xEFF1F5FF),
+    panelDeep = Color(0xF7E3EBFC),
+    panelBorder = Color(0xFF7A8DEB),
+    panelEdge = Color(0xFFB8C8FA),
+    slot = Color(0xD8D9E3FF),
+    slotBorder = Color(0xFF6B80E6),
+    danger = Color(0xFFE03636),
+    success = Color(0xFF2A9E1D),
+    gold = Color(0xFFC48F00),
+)
+
+val LocalDarkMode = compositionLocalOf { true }
+val LocalGeoColors = compositionLocalOf { DarkGeoColorScheme }
+
+@Composable
+fun GeoTheme(isDarkMode: Boolean = true, content: @Composable () -> Unit) {
+    val scheme = if (isDarkMode) DarkGeoColorScheme else LightGeoColorScheme
+    CompositionLocalProvider(
+        LocalDarkMode provides isDarkMode,
+        LocalGeoColors provides scheme,
+        content = content,
+    )
+}
+
 object GeoColors {
-    val Night = Color(0xFF070A1F)
-    val Text = Color(0xFFFFFFFF)
-    val TextSoft = Color(0xFFD7DCF4)
-    val TextMuted = Color(0xFF98A2CC)
-    val Outline = Color(0xFF0A0A12)
+    val current: GeoColorScheme
+        @Composable get() = LocalGeoColors.current
 
-    /** The yellow a menu item turns when you press it, straight out of a title screen. */
-    val Highlight = Color(0xFFFFE45C)
+    val Night: Color
+        @Composable get() = LocalGeoColors.current.night
 
-    val Panel = Color(0xD8192157)
-    val PanelDeep = Color(0xEB0F1440)
-    val PanelBorder = Color(0xFF4A5BC0)
-    val PanelEdge = Color(0xFF080B26)
-    val Slot = Color(0xC0283A8F)
-    val SlotBorder = Color(0xFF6577DA)
+    val Text: Color
+        @Composable get() = LocalGeoColors.current.text
 
-    val Danger = Color(0xFFFF5D5D)
-    val Success = Color(0xFF7BEA6E)
-    val Gold = Color(0xFFFFD34D)
+    val TextSoft: Color
+        @Composable get() = LocalGeoColors.current.textSoft
+
+    val TextMuted: Color
+        @Composable get() = LocalGeoColors.current.textMuted
+
+    val Outline: Color
+        @Composable get() = LocalGeoColors.current.outline
+
+    val Highlight: Color
+        @Composable get() = LocalGeoColors.current.highlight
+
+    val Panel: Color
+        @Composable get() = LocalGeoColors.current.panel
+
+    val PanelDeep: Color
+        @Composable get() = LocalGeoColors.current.panelDeep
+
+    val PanelBorder: Color
+        @Composable get() = LocalGeoColors.current.panelBorder
+
+    val PanelEdge: Color
+        @Composable get() = LocalGeoColors.current.panelEdge
+
+    val Slot: Color
+        @Composable get() = LocalGeoColors.current.slot
+
+    val SlotBorder: Color
+        @Composable get() = LocalGeoColors.current.slotBorder
+
+    val Danger: Color
+        @Composable get() = LocalGeoColors.current.danger
+
+    val Success: Color
+        @Composable get() = LocalGeoColors.current.success
+
+    val Gold: Color
+        @Composable get() = LocalGeoColors.current.gold
 }
 
 fun rarityColor(rarity: Rarity): Color = when (rarity) {

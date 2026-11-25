@@ -1,7 +1,10 @@
 // Main menu: the rocking logo, the player's level, today's quest, and a title-screen menu into each mode.
 package com.example.geoseek.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -20,8 +23,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.geoseek.data.Player
@@ -31,34 +37,67 @@ import com.example.geoseek.models.OBJECT_LIST
 import java.util.Calendar
 
 @Composable
-fun HomeScreen(player: Player, onOpen: (Destination) -> Unit, onClaimQuest: (Int) -> Unit) {
-    Column(
+fun HomeScreen(
+    player: Player,
+    onOpen: (Destination) -> Unit,
+    onClaimQuest: (Int) -> Unit,
+    onOpenSettings: () -> Unit = {},
+) {
+    Box(
         Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        Spacer(Modifier.height(28.dp))
-        GeoLogo(fontSize = 52f)
-        OutlinedText(greeting(player.username), GeoType.Heading, Modifier.padding(top = 4.dp), color = GeoColors.TextSoft)
-        Spacer(Modifier.height(20.dp))
-        PlayerBadge(player, Modifier.widthIn(max = 460.dp).fillMaxWidth().entrance(0))
-        Spacer(Modifier.height(36.dp))
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.height(28.dp))
+            GeoLogo(fontSize = 52f)
+            OutlinedText(greeting(player.username), GeoType.Heading, Modifier.padding(top = 4.dp), color = GeoColors.TextSoft)
+            Spacer(Modifier.height(20.dp))
+            PlayerBadge(player, Modifier.widthIn(max = 460.dp).fillMaxWidth().entrance(0))
+            Spacer(Modifier.height(36.dp))
 
-        // Same-width rows so the icons line up in a column, like a title-screen menu.
-        Column(Modifier.width(IntrinsicSize.Max), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            MenuItem("Hunt", { onOpen(Destination.Hunt) }, Modifier.fillMaxWidth().entrance(1), Icons.Hunt, Scenes.Hunt.accent, "Timed Hunt: Race the clock for targets")
-            MenuItem("Free Look", { onOpen(Destination.Explore) }, Modifier.fillMaxWidth().entrance(2), Icons.Explore, Scenes.Explore.accent, "Collection Mode: Discover new cards")
-            MenuItem("Collection", { onOpen(Destination.Collection) }, Modifier.fillMaxWidth().entrance(3), Icons.Cards, Scenes.Collection.accent, "${player.cards.size} / ${OBJECT_LIST.size} cards collected")
-            MenuItem("Versus", { onOpen(Destination.Versus) }, Modifier.fillMaxWidth().entrance(4), Icons.Versus, GeoColors.Danger, "Battle with the cards you have found")
-            MenuItem("Profile", { onOpen(Destination.Profile) }, Modifier.fillMaxWidth().entrance(4), Icons.Profile, Scenes.Profile.accent, "Level ${player.levelInfo.level} Explorer • ${player.xp} XP")
+            // Same-width rows so the icons line up in a column, like a title-screen menu.
+            Column(Modifier.width(IntrinsicSize.Max), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                MenuItem("Hunt", { onOpen(Destination.Hunt) }, Modifier.fillMaxWidth().entrance(1), Icons.Hunt, Scenes.Hunt.accent, "Timed Hunt: Race the clock for targets")
+                MenuItem("Free Look", { onOpen(Destination.Explore) }, Modifier.fillMaxWidth().entrance(2), Icons.Explore, Scenes.Explore.accent, "Collection Mode: Discover new cards")
+                MenuItem("Collection", { onOpen(Destination.Collection) }, Modifier.fillMaxWidth().entrance(3), Icons.Cards, Scenes.Collection.accent, "${player.cards.size} / ${OBJECT_LIST.size} cards collected")
+                MenuItem("Versus", { onOpen(Destination.Versus) }, Modifier.fillMaxWidth().entrance(4), Icons.Versus, GeoColors.Danger, "Battle with the cards you have found")
+                MenuItem("Profile", { onOpen(Destination.Profile) }, Modifier.fillMaxWidth().entrance(4), Icons.Profile, Scenes.Profile.accent, "Level ${player.levelInfo.level} Explorer • ${player.xp} XP")
+            }
+
+            Spacer(Modifier.height(36.dp))
+            QuestPanel(player, onClaimQuest, Modifier.widthIn(max = 460.dp).fillMaxWidth().entrance(5))
+            Spacer(Modifier.height(24.dp))
         }
 
-        Spacer(Modifier.height(36.dp))
-        QuestPanel(player, onClaimQuest, Modifier.widthIn(max = 460.dp).fillMaxWidth().entrance(5))
-        Spacer(Modifier.height(24.dp))
+        // Top-right gear button to open the settings menu overlay
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Box(
+                Modifier
+                    .slot(border = GeoColors.Highlight, fill = GeoColors.PanelDeep)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onOpenSettings,
+                    )
+                    .padding(10.dp)
+                    .semantics { contentDescription = "Settings" },
+                contentAlignment = Alignment.Center,
+            ) {
+                PixelSprite(Icons.Gear, Modifier.size(22.dp), tint = GeoColors.Highlight)
+            }
+        }
     }
 }
 

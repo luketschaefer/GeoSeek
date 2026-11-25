@@ -47,10 +47,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.geoseek.data.AuthStore
 import com.example.geoseek.data.Player
-import com.example.geoseek.data.levelInfo
+import com.example.geoseek.data.PlayerPrefs
 import com.example.geoseek.data.ProgressStore
-import com.example.geoseek.engine.HuntRound
+import com.example.geoseek.data.levelInfo
 import com.example.geoseek.engine.GameScoreResult
+import com.example.geoseek.engine.HuntRound
 import com.example.geoseek.models.GameObject
 import kotlinx.coroutines.delay
 
@@ -59,7 +60,7 @@ enum class Destination(val scene: Scene) {
     Hunt(Scenes.Hunt),
     Explore(Scenes.Explore),
     Collection(Scenes.Collection),
-    Versus(Scenes.Hunt.copy(accent = GeoColors.Danger)),
+    Versus(Scenes.Hunt.copy(accent = DarkGeoColorScheme.danger)),
     Profile(Scenes.Profile),
     HuntHistory(Scenes.Profile),
 }
@@ -72,6 +73,10 @@ fun GeoSeekRoot() {
     val activity = LocalActivity.current
     val store = remember { AuthStore(context) }
     val progress = remember { ProgressStore(context) }
+    val playerPrefs = remember { PlayerPrefs.from(context) }
+
+    var isDarkMode by remember { mutableStateOf(playerPrefs.isDarkMode()) }
+    var showSettingsOverlay by remember { mutableStateOf(false) }
 
     var player by remember { mutableStateOf(store.currentPlayer()) }
     var levelUpToShow by remember { mutableStateOf<Int?>(null) }
@@ -121,48 +126,62 @@ fun GeoSeekRoot() {
     }
     val scene = if (stage == Stage.Main) destination.scene else Scenes.Title
 
-    Box(Modifier.fillMaxSize().background(GeoColors.Night)) {
-        WorldBackground(scene, Modifier.fillMaxSize(), dim = if (immersive) 0.5f else 0f)
+    GeoTheme(isDarkMode = isDarkMode) {
+        Box(Modifier.fillMaxSize().background(GeoColors.Night)) {
+            WorldBackground(scene, Modifier.fillMaxSize(), dim = if (immersive) 0.5f else 0f)
 
-        AnimatedContent(
-            targetState = stage,
-            transitionSpec = {
-                (fadeIn(tween(600, delayMillis = 200)) + scaleIn(tween(700, delayMillis = 200), initialScale = 0.92f)) togetherWith
-                    (fadeOut(tween(300)) + scaleOut(tween(400), targetScale = 1.08f))
-            },
-            label = "stage",
-        ) { s ->
-            when (s) {
-                Stage.Splash -> Splash(player) { splashDone = true }
-                Stage.Auth -> AuthScreen(store, onAuthenticated = {
-                    destination = Destination.Home
-                    player = it
-                })
-                Stage.Main -> lastPlayer?.let { current ->
-                    MainContent(
-                        player = current,
-                        destination = destination,
-                        onNavigate = { destination = it },
-                        onImmersiveChange = { immersive = it },
-                        onHuntFinished = { round, res -> updatePlayer(progress.recordHunt(current, round, res)) },
-                        onCollect = { obj, xpEarned -> updatePlayer(progress.collect(current, obj, xpEarned)) },
-                        onClaimQuest = { reward -> updatePlayer(progress.claimQuest(current, reward)) },
-                        onSignOut = {
-                            store.signOut()
-                            immersive = false
-                            player = null
-                        },
+            AnimatedContent(
+                targetState = stage,
+                transitionSpec = {
+                    (fadeIn(tween(600, delayMillis = 200)) + scaleIn(tween(700, delayMillis = 200), initialScale = 0.92f)) togetherWith
+                        (fadeOut(tween(300)) + scaleOut(tween(400), targetScale = 1.08f))
+                },
+                label = "stage",
+            ) { s ->
+                when (s) {
+                    Stage.Splash -> Splash(player) { splashDone = true }
+                    Stage.Auth -> AuthScreen(store, onAuthenticated = {
+                        destination = Destination.Home
+                        player = it
+                    })
+                    Stage.Main -> lastPlayer?.let { current ->
+                        MainContent(
+                            player = current,
+                            destination = destination,
+                            onNavigate = { destination = it },
+                            onImmersiveChange = { immersive = it },
+                            onOpenSettings = { showSettingsOverlay = true },
+                            onHuntFinished = { round, res -> updatePlayer(progress.recordHunt(current, round, res)) },
+                            onCollect = { obj, xpEarned -> updatePlayer(progress.collect(current, obj, xpEarned)) },
+                            onClaimQuest = { reward -> updatePlayer(progress.claimQuest(current, reward)) },
+                            onSignOut = {
+                                store.signOut()
+                                immersive = false
+                                player = null
+                            },
+                        )
+                    }
+                }
+            }
+
+            levelUpToShow?.let { lvl ->
+                lastPlayer?.let { p ->
+                    LevelUpOverlay(
+                        level = lvl,
+                        username = p.username,
+                        onDismiss = { levelUpToShow = null },
                     )
                 }
             }
-        }
 
-        levelUpToShow?.let { lvl ->
-            lastPlayer?.let { p ->
-                LevelUpOverlay(
-                    level = lvl,
-                    username = p.username,
-                    onDismiss = { levelUpToShow = null },
+            if (showSettingsOverlay) {
+                SettingsOverlay(
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = { enabled ->
+                        isDarkMode = enabled
+                        playerPrefs.setDarkMode(enabled)
+                    },
+                    onDismiss = { showSettingsOverlay = false },
                 )
             }
         }
@@ -209,6 +228,7 @@ private fun MainContent(
     destination: Destination,
     onNavigate: (Destination) -> Unit,
     onImmersiveChange: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
     onHuntFinished: (round: HuntRound, result: GameScoreResult) -> Unit,
     onCollect: (GameObject, Int?) -> Unit,
     onClaimQuest: (Int) -> Unit,
@@ -226,12 +246,17 @@ private fun MainContent(
             // Into a mode, the menu slides off to the left as the world travels right; back out, the reverse.
             val dir = if (targetState == Destination.Home) -1 else 1
             (fadeIn(tween(420, delayMillis = 160)) + slideInHorizontally(tween(560, delayMillis = 80)) { (it / 3) * dir }) togetherWith
-                (fadeOut(tween(220)) + slideOutHorizontally(tween(420)) { (-it / 3) * dir })
+                (fadeOut(tween(420)) + slideOutHorizontally(tween(420)) { (-it / 3) * dir })
         },
         label = "destination",
     ) { d ->
         when (d) {
-            Destination.Home -> HomeScreen(player, onOpen = onNavigate, onClaimQuest = onClaimQuest)
+            Destination.Home -> HomeScreen(
+                player = player,
+                onOpen = onNavigate,
+                onClaimQuest = onClaimQuest,
+                onOpenSettings = onOpenSettings,
+            )
             Destination.Hunt -> HuntScreen(
                 player = player,
                 onBack = goHome,

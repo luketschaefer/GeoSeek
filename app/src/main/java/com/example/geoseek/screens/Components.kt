@@ -155,15 +155,17 @@ fun pixelPath(l: Float, t: Float, r: Float, b: Float, s: Float): Path = Path().a
 }
 
 /** The game's panel look: translucent fill, a dark outer edge, and a lighter inner border. */
+@Composable
 fun Modifier.pixelPanel(
     fill: Color = GeoColors.Panel,
     border: Color = GeoColors.PanelBorder,
     step: Dp = 4.dp,
+    edge: Color = GeoColors.PanelEdge,
 ): Modifier = drawBehind {
     val s = step.toPx()
     val e = 2.dp.toPx()
     drawPath(pixelPath(0f, 0f, size.width, size.height, s), fill)
-    drawPath(pixelPath(0f, 0f, size.width, size.height, s), GeoColors.PanelEdge, style = Stroke(e * 2))
+    drawPath(pixelPath(0f, 0f, size.width, size.height, s), edge, style = Stroke(e * 2))
     drawPath(pixelPath(e * 1.5f, e * 1.5f, size.width - e * 1.5f, size.height - e * 1.5f, s * 0.75f), border, style = Stroke(e))
     // A one-pixel shine along the top, like light catching the frame.
     drawRect(Color.White.copy(alpha = 0.10f), Offset(2 * s, e * 2.5f), Size(size.width - 4 * s, e))
@@ -364,9 +366,10 @@ fun GeoTextField(
 @Composable
 fun PixelBar(progress: Float, color: Color, modifier: Modifier = Modifier, segments: Int = 20) {
     val animated by animateFloatAsState(progress.coerceIn(0f, 1f), spring(0.8f, Spring.StiffnessLow), label = "bar")
+    val panelEdge = GeoColors.PanelEdge
     Canvas(modifier.height(14.dp)) {
         val e = 2.dp.toPx()
-        drawRect(GeoColors.PanelEdge)
+        drawRect(panelEdge)
         drawRect(Color(0xFF1A1F45), Offset(e, e), Size(size.width - 2 * e, size.height - 2 * e))
         val gap = 1.5.dp.toPx()
         val inner = size.width - 2 * e
@@ -383,6 +386,7 @@ fun PixelBar(progress: Float, color: Color, modifier: Modifier = Modifier, segme
 }
 
 /** A square inventory-style slot. */
+@Composable
 fun Modifier.slot(border: Color = GeoColors.SlotBorder, fill: Color = GeoColors.Slot): Modifier =
     pixelPanel(fill, border, step = 3.dp)
 
@@ -459,6 +463,78 @@ fun LevelUpOverlay(
                 )
                 Spacer(Modifier.height(20.dp))
                 PixelButton("Awesome!", onDismiss, Modifier.fillMaxWidth(), color = GeoColors.Gold, icon = Icons.Star)
+            }
+        }
+    }
+}
+
+/** Settings overlay for toggling options like Dark Mode / Light Mode. */
+@Composable
+fun SettingsOverlay(
+    isDarkMode: Boolean,
+    onToggleDarkMode: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(onBack = onDismiss)
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xD903051A))
+            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onDismiss)
+            .padding(28.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Panel(
+            Modifier
+                .widthIn(max = 420.dp)
+                .fillMaxWidth()
+                .clickable(remember { MutableInteractionSource() }, indication = null) {},
+            fill = GeoColors.PanelDeep,
+            border = GeoColors.PanelBorder,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    PixelSprite(Icons.Gear, Modifier.size(26.dp), tint = GeoColors.Highlight)
+                    Spacer(Modifier.width(10.dp))
+                    OutlinedText("SETTINGS", GeoType.Display, color = GeoColors.Highlight, outlineWidth = 4.dp)
+                }
+                Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .slot()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        OutlinedText("Theme Mode", GeoType.Heading, outlineWidth = 2.5.dp)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            if (isDarkMode) "Dark Mode (Moon & Stars)" else "Light Mode (Daylight & Sun)",
+                            style = GeoType.Caption,
+                            color = GeoColors.TextSoft,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    PixelButton(
+                        text = if (isDarkMode) "Dark" else "Light",
+                        onClick = { onToggleDarkMode(!isDarkMode) },
+                        color = if (isDarkMode) GeoColors.PanelBorder else GeoColors.Highlight,
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
+                PixelButton(
+                    text = "Close",
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = GeoColors.TextSoft,
+                    icon = Icons.Check,
+                )
             }
         }
     }

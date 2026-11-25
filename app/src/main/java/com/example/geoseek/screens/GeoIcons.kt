@@ -20,15 +20,16 @@ class Sprite(val rows: List<String>, val palette: Map<Char, Color> = emptyMap())
 /** Draws [sprite] centered and pixel-snapped. 'X' pixels take [tint]; [shadow] adds a dark drop edge. */
 @Composable
 fun PixelSprite(sprite: Sprite, modifier: Modifier = Modifier, tint: Color = Color.White, shadow: Boolean = true, alpha: Float = 1f) {
-    Canvas(modifier) { drawSprite(sprite, tint, shadow, alpha) }
+    val outlineColor = GeoColors.Outline
+    Canvas(modifier) { drawSprite(sprite, tint, shadow, alpha, outlineColor) }
 }
 
-fun DrawScope.drawSprite(sprite: Sprite, tint: Color = Color.White, shadow: Boolean = true, alpha: Float = 1f) {
+fun DrawScope.drawSprite(sprite: Sprite, tint: Color = Color.White, shadow: Boolean = true, alpha: Float = 1f, outlineColor: Color = DarkGeoColorScheme.outline) {
     val pad = if (shadow) 1 else 0
     val cell = floor(minOf(size.width / (sprite.width + pad), size.height / (sprite.height + pad))).coerceAtLeast(1f)
     val left = floor((size.width - cell * (sprite.width + pad)) / 2f)
     val top = floor((size.height - cell * (sprite.height + pad)) / 2f)
-    val shadowColor = GeoColors.Outline.copy(alpha = 0.7f * alpha)
+    val shadowColor = outlineColor.copy(alpha = 0.7f * alpha)
     if (shadow) {
         sprite.rows.forEachIndexed { y, row ->
             row.forEachIndexed { x, ch ->
@@ -119,6 +120,23 @@ object Icons {
             "XXXXXXXXXX",
             "XXXXXXXXXX",
             "XXXXXXXXXX",
+        ),
+    )
+    val Gear = Sprite(
+        listOf(
+            "....XXXXX....",
+            "....X...X....",
+            "..XXX...XXX..",
+            ".X..XXXXX..X.",
+            ".X.XX...XX.X.",
+            ".X.X.....X.X.",
+            "XXXX.....XXXX",
+            ".X.X.....X.X.",
+            ".X.XX...XX.X.",
+            ".X..XXXXX..X.",
+            "..XXX...XXX..",
+            "....X...X....",
+            "....XXXXX....",
         ),
     )
     val Back = Sprite(

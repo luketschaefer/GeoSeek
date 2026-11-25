@@ -261,7 +261,8 @@ private fun EnvironmentPicker(
     }
 }
 
-private fun Color.compositeOverPanel(): Color = lerpColor(GeoColors.Panel, copy(alpha = 1f), alpha).copy(alpha = GeoColors.Panel.alpha)
+@Composable
+private fun Color.compositeOverPanel(panel: Color = GeoColors.Panel): Color = lerpColor(panel, copy(alpha = 1f), alpha).copy(alpha = panel.alpha)
 
 @Composable
 private fun Countdown(onDone: () -> Unit) {
